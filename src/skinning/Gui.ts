@@ -218,6 +218,11 @@ export class GUI implements IGUI {
     // TODO: Add logic here:
     // 1) To highlight a bone, if the mouse is hovering over a bone;
     // 2) To rotate a bone, if the mouse button is pressed and currently highlighting a bone.
+
+    if (!this.dragging) {
+      // We're moving the mouse - mode 1
+      // Convert to world coordinates and then check for ray-cylinder intersection
+    }
   }
   
  
