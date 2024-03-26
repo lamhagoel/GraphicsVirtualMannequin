@@ -1,10 +1,11 @@
 import { Camera } from "../lib/webglutils/Camera.js";
 import { CanvasAnimation } from "../lib/webglutils/CanvasAnimation.js";
 import { SkinningAnimation } from "./App.js";
-import { Mat4, Vec3, Vec4, Vec2, Mat2, Quat } from "../lib/TSM.js";
+import { Mat3, Mat4, Vec3, Vec4, Vec2, Mat2, Quat } from "../lib/TSM.js";
 import { Bone } from "./Scene.js";
 import { RenderPass } from "../lib/webglutils/RenderPass.js";
 
+let RAY_EPSILON = 0.0001;
 /**
  * Might be useful for designing any animation GUI
  */
@@ -218,14 +219,165 @@ export class GUI implements IGUI {
     // TODO: Add logic here:
     // 1) To highlight a bone, if the mouse is hovering over a bone;
     // 2) To rotate a bone, if the mouse button is pressed and currently highlighting a bone.
-
+    // Get normalized device coordinates 
     if (!this.dragging) {
       // We're moving the mouse - mode 1
       // Convert to world coordinates and then check for ray-cylinder intersection
+      let NDC: Vec4 = new Vec4([(2.0 * x / this.width) - 1.0, (-2.0 * y / this.viewPortHeight) + 1.0, -1.0, 1.0]);
+      let m_world_coor: Vec4 = this.viewMatrix().inverse().multiplyVec4(this.projMatrix().inverse().multiplyVec4(NDC));
+      // TODO: I think it is ok to scale after all the multiplications (same as in between view and proj multiplication?)
+      // .scale scales a vec4 by a scalar number, w should be 1
+      m_world_coor.scale(m_world_coor.w);
+      // get ray direction 
+      let mouse_dir = new Vec3([m_world_coor.x, m_world_coor.y, m_world_coor.z]);
+      let pos = this.camera.pos();
+      let dir = Vec3.difference(mouse_dir, pos).normalize();
+      
+      let mesh = this.animation.getScene().meshes[0]
+      let bones = mesh.bones;
+      let i = 0;
+      let intersection: boolean = false;
+      while (i < bones.length && !intersection) {
+        let cur_bone = bones[i];
+        let axis: Vec3 = Vec3.difference(cur_bone.endpoint, cur_bone.position);
+        let tang = axis.normalize();
+        // TODO: I saw this on internet, have no idea why we do this next two lines
+        // TODO: remove comment
+        let test_random = Vec3.dot(tang, new Vec3([0, 1, 0]))
+        let random = Math.abs(test_random) < 0.999 ? new Vec3([0, 1, 0]) : new Vec3([1, 0, 0]);
+        let y: Vec3 = Vec3.cross(tang, random).normalize();
+        let x: Vec3 = Vec3.cross(tang, y).normalize();
+        let Tmatrix: Mat3 = new Mat3([
+          y.x, y.y, y.z,
+          tang.x, tang.y, tang.z,
+          x.x, x.y, x.z]
+        ).inverse();
+        // rotation bone position and end point
+        let dir_transformed = Tmatrix.copy().multiplyVec3(dir).normalize();
+        let pos_transformed = Tmatrix.copy().multiplyVec3(pos.copy())
+        let bone_position_transformed: Vec3 = Tmatrix.multiplyVec3(cur_bone.position);
+        let bone_endpoint_transformed: Vec3 = Tmatrix.multiplyVec3(cur_bone.endpoint);
+        // translate the position in local coordiantes to 
+        let pos_in_local = Vec3.difference(pos_transformed, bone_position_transformed);
+        let end_in_local = Vec3.difference(bone_endpoint_transformed, bone_position_transformed)
+        // Cylinder intersection
+        // TODO: maybe create a new function outside 
+        let a = Math.pow(dir_transformed.x, 2) + Math.pow(dir_transformed.y, 2);
+        let b = 2.0 * (pos_in_local.x * dir_transformed.x + pos_in_local.y * dir_transformed.y);
+        // TODO: confirm 0.1
+        let c = pos_in_local.x * pos_in_local.x + pos_in_local.y * pos_in_local.y - 0.1 * 0.1;
+        let discriminant = (Math.pow(b, 2) - 4*a*c);
+        let min = Math.min(0.0, end_in_local.z);
+        let max = Math.max(0.0, end_in_local.z);
+        let minT: number = Number.MAX_SAFE_INTEGER;
+        if (0.0 == a) {
+          // This implies that x1 = 0.0 and y1 = 0.0, which further
+          // implies that the ray is aligned with the body of the
+          // cylinder, so no intersection.
+          intersection = false;
+          // TODO: confirm if break here
+        } else if (discriminant < 0) {
+          intersection = false;
+          // TODO: confirm if break here
+        } else {
+          // solve quadratic ecuation
+          let x1 = ( (-1 * b) + Math.sqrt(discriminant))/ (2*a)
+          let x2 = ( (-1 * b) - Math.sqrt(discriminant))/ (2*a)
+
+          if (x1 > RAY_EPSILON) {
+              // Two intersections.
+              let P: Vec3 = Vec3.sum(pos_in_local, dir_transformed.scale(x1));
+              let z = P.z;
+              if (z >= min && z <= max) {
+                  // It's okay.
+                  if (x1 < minT) {
+                    minT = x1;
+                  }
+                  intersection = true;
+              }
+          }
+
+          let P: Vec3 = Vec3.sum(pos_in_local, dir_transformed.scale(x2));
+          let z = P.z;
+          if (z >= min && z <= max) {
+              if (x2 < minT) {
+                minT = x2;
+              }
+              intersection = true;
+          } 
+
+        }
+
+        i += 1;
+      }
+      
     }
   }
+  // TODO: USE THE RAY TRACER INTERSECTION
+  // bool Cylinder::intersectBody(const ray &r, isect &i) const {
+  //   double x0 = r.getPosition()[0];
+  //   double y0 = r.getPosition()[1];
+  //   double x1 = r.getDirection()[0];
+  //   double y1 = r.getDirection()[1];
   
- 
+  //   double a = x1 * x1 + y1 * y1;
+  //   double b = 2.0 * (x0 * x1 + y0 * y1);
+  //   double c = x0 * x0 + y0 * y0 - 1.0;
+  
+  //   if (0.0 == a) {
+  //     // This implies that x1 = 0.0 and y1 = 0.0, which further
+  //     // implies that the ray is aligned with the body of the
+  //     // cylinder, so no intersection.
+  //     return false;
+  //   }
+  
+  //   double discriminant = b * b - 4.0 * a * c;
+  
+  //   if (discriminant < 0.0) {
+  //     return false;
+  //   }
+  
+  //   discriminant = sqrt(discriminant);
+  
+  //   double t2 = (-b + discriminant) / (2.0 * a);
+  
+  //   if (t2 <= RAY_EPSILON) {
+  //     return false;
+  //   }
+  
+  //   double t1 = (-b - discriminant) / (2.0 * a);
+  
+  //   if (t1 > RAY_EPSILON) {
+  //     // Two intersections.
+  //     glm::dvec3 P = r.at(t1);
+  //     double z = P[2];
+  //     if (z >= 0.0 && z <= 1.0) {
+  //       // It's okay.
+  //       i.setT(t1);
+  //       i.setN(glm::normalize(glm::dvec3(P[0], P[1], 0.0)));
+  //       return true;
+  //     }
+  //   }
+  
+  //   glm::dvec3 P = r.at(t2);
+  //   double z = P[2];
+  //   if (z >= 0.0 && z <= 1.0) {
+  //     i.setT(t2);
+  
+  //     glm::dvec3 normal(P[0], P[1], 0.0);
+  //     // In case we are _inside_ the _uncapped_ cone, we need to flip
+  //     // the normal. Essentially, the cone in this case is a
+  //     // double-sided surface and has _2_ normals
+  //     if (!capped && glm::dot(normal, r.getDirection()) > 0)
+  //       normal = -normal;
+  
+  //     i.setN(glm::normalize(normal));
+  //     return true;
+  //   }
+  
+  //   return false;
+  // }
+
   public getModeString(): string {
     switch (this.mode) {
       case Mode.edit: { return "edit: " + this.getNumKeyFrames() + " keyframes"; }
