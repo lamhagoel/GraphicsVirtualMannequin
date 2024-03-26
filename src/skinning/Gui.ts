@@ -204,6 +204,7 @@ export class GUI implements IGUI {
           } else {
             this.camera.orbitTarget(rotAxis, GUI.rotationSpeed);
           }
+          // TODO: include left click with highlight == true
           break;
         }
         case 2: {
@@ -236,8 +237,10 @@ export class GUI implements IGUI {
       let mesh = this.animation.getScene().meshes[0]
       let bones = mesh.bones;
       let i = 0;
-      let intersection: boolean = false;
-      while (i < bones.length && !intersection) {
+      let minimum_t = Number.MAX_VALUE;
+      let selected_bone: Bone | null = null; 
+
+      while (i < bones.length) {
         let cur_bone = bones[i];
         let axis: Vec3 = Vec3.difference(cur_bone.endpoint, cur_bone.position);
         let tang = axis.normalize();
@@ -261,57 +264,68 @@ export class GUI implements IGUI {
         let pos_in_local = Vec3.difference(pos_transformed, bone_position_transformed);
         let end_in_local = Vec3.difference(bone_endpoint_transformed, bone_position_transformed)
         // Cylinder intersection
-        // TODO: maybe create a new function outside 
-        let a = Math.pow(dir_transformed.x, 2) + Math.pow(dir_transformed.y, 2);
-        let b = 2.0 * (pos_in_local.x * dir_transformed.x + pos_in_local.y * dir_transformed.y);
-        // TODO: confirm 0.1
-        let c = pos_in_local.x * pos_in_local.x + pos_in_local.y * pos_in_local.y - 0.1 * 0.1;
-        let discriminant = (Math.pow(b, 2) - 4*a*c);
         let min = Math.min(0.0, end_in_local.z);
         let max = Math.max(0.0, end_in_local.z);
-        let minT: number = Number.MAX_SAFE_INTEGER;
-        if (0.0 == a) {
-          // This implies that x1 = 0.0 and y1 = 0.0, which further
-          // implies that the ray is aligned with the body of the
-          // cylinder, so no intersection.
-          intersection = false;
-          // TODO: confirm if break here
-        } else if (discriminant < 0) {
-          intersection = false;
-          // TODO: confirm if break here
-        } else {
-          // solve quadratic ecuation
-          let x1 = ( (-1 * b) + Math.sqrt(discriminant))/ (2*a)
-          let x2 = ( (-1 * b) - Math.sqrt(discriminant))/ (2*a)
-
-          if (x1 > RAY_EPSILON) {
-              // Two intersections.
-              let P: Vec3 = Vec3.sum(pos_in_local, dir_transformed.scale(x1));
-              let z = P.z;
-              if (z >= min && z <= max) {
-                  // It's okay.
-                  if (x1 < minT) {
-                    minT = x1;
-                  }
-                  intersection = true;
-              }
-          }
-
-          let P: Vec3 = Vec3.sum(pos_in_local, dir_transformed.scale(x2));
-          let z = P.z;
-          if (z >= min && z <= max) {
-              if (x2 < minT) {
-                minT = x2;
-              }
-              intersection = true;
-          } 
-
+        let result_intersection = this.intersectCilinder(pos_in_local, dir_transformed, min, max);
+        // check result
+        // TODO: I think we can just break the while loop if we just find the first that matches
+        // I do not know if it makes any difference in cases where bones are ver close? ray_epsilon is quite small
+        if (result_intersection < minimum_t) {
+          minimum_t = result_intersection;
+          selected_bone = cur_bone;
+        // if it is selected we need to make it false
+        } else if(cur_bone.isHighlight) {
+          bones[i].isHighlight = false;
+          mesh.selectedBone = null;
         }
-
         i += 1;
+      }
+      // highlight the selected bone and set the bone to the mesh
+      if (selected_bone != null) {
+        mesh.selectedBone = selected_bone;
+        mesh.selectedBone.isHighlight = true;
       }
       
     }
+  }
+  // using ray tracer code
+  public intersectCilinder(pos_in_local: Vec3, dir_transformed: Vec3, min: number, max: number): number {
+    let a = Math.pow(dir_transformed.x, 2) + Math.pow(dir_transformed.y, 2);
+    let b = 2.0 * (pos_in_local.x * dir_transformed.x + pos_in_local.y * dir_transformed.y);
+    // TODO: confirm 0.1
+    let c = pos_in_local.x * pos_in_local.x + pos_in_local.y * pos_in_local.y - 0.1 * 0.1;
+    let discriminant = (Math.pow(b, 2) - 4*a*c);
+    if (0.0 == a || discriminant < 0.0) {
+      // This implies that x1 = 0.0 and y1 = 0.0, which further
+      // implies that the ray is aligned with the body of the
+      // cylinder, so no intersection.
+      return Number.MAX_SAFE_INTEGER;
+      // TODO: confirm if break here
+    } else {
+      // solving quadratic ecuation
+      let x1 = ( (-1 * b) + Math.sqrt(discriminant))/ (2*a)
+      let x2 = ( (-1 * b) - Math.sqrt(discriminant))/ (2*a)
+
+      if (x2 <= RAY_EPSILON) {
+        return Number.MAX_SAFE_INTEGER;
+      }
+
+      if (x1 > RAY_EPSILON) {
+          // Two intersections.
+          let P: Vec3 = Vec3.sum(pos_in_local, dir_transformed.scale(x1));
+          let z = P.z;
+          if (z >= min && z <= max) {
+              return x1;
+          }
+      }
+
+      let P: Vec3 = Vec3.sum(pos_in_local, dir_transformed.scale(x2));
+      let z = P.z;
+      if (z >= min && z <= max) {
+          return x2;
+      } 
+    }
+    return Number.MAX_SAFE_INTEGER;
   }
   // TODO: USE THE RAY TRACER INTERSECTION
   // bool Cylinder::intersectBody(const ray &r, isect &i) const {
@@ -378,6 +392,7 @@ export class GUI implements IGUI {
   //   return false;
   // }
 
+  
   public getModeString(): string {
     switch (this.mode) {
       case Mode.edit: { return "edit: " + this.getNumKeyFrames() + " keyframes"; }

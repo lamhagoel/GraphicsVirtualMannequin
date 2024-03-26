@@ -48,13 +48,14 @@ export class Bone {
   public position: Vec3; // current position of the bone's joint *in world coordinates*. Used by the provided skeleton shader, so you need to keep this up to date.
   public endpoint: Vec3; // current position of the bone's second (non-joint) endpoint, in world coordinates
   public rotation: Quat; // current orientation of the joint *with respect to world coordinates*
-
+  public isHighlight: boolean; // set to true if the bone is highlighted
   constructor(bone: BoneLoader) {
     this.parent = bone.parent;
     this.children = Array.from(bone.children);
     this.position = bone.position.copy();
     this.endpoint = bone.endpoint.copy();
     this.rotation = bone.rotation.copy();
+    this.isHighlight = false;
   }
 }
 
@@ -70,6 +71,8 @@ export class Mesh {
   private boneIndices: number[];
   private bonePositions: Float32Array;
   private boneIndexAttribute: Float32Array;
+
+  public selectedBone: Bone | null; // to know if the mesh bone is selected
 
   constructor(mesh: MeshLoader) {
     this.geometry = new MeshGeometry(mesh.geometry);
@@ -121,4 +124,6 @@ export class Mesh {
     });
     return trans;
   }
+  // TODO: change
+
 }
