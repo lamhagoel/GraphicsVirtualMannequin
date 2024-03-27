@@ -248,6 +248,7 @@ export class GUI implements IGUI {
         // TODO: remove comment
         let test_random = Vec3.dot(tang, new Vec3([0, 1, 0]))
         let random = Math.abs(test_random) < 0.999 ? new Vec3([0, 1, 0]) : new Vec3([1, 0, 0]);
+        // let random = 1 ? new Vec3([0, 1, 0]) : new Vec3([1, 0, 0]);
         let y: Vec3 = Vec3.cross(tang, random).normalize();
         let x: Vec3 = Vec3.cross(tang, y).normalize();
         let Tmatrix: Mat3 = new Mat3([

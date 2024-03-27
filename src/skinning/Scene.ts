@@ -124,6 +124,25 @@ export class Mesh {
     });
     return trans;
   }
+
+  public getBoneColors(): Float32Array {
+    let color = new Float32Array(4 * this.bones.length);
+    this.bones.forEach((bone, index) => {
+      if(bone.isHighlight) {
+        color[index * 4] = 0.0;
+        color[index * 4 + 1] = 1.0;
+        color[index * 4 + 2] = 0.0;
+        color[index * 4 + 3] = 1.0;
+      }
+      else {
+        color[index * 4] = 1.0;
+        color[index * 4 + 1] = 0.0;
+        color[index * 4 + 2] = 0.0;
+        color[index * 4 + 3] = 1.0;
+      }
+    });
+    return color;
+  }
   // TODO: change
 
 }

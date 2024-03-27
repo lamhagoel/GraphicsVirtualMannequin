@@ -112,6 +112,7 @@ export const skeletonVSText = `
 
     attribute vec3 vertPosition;
     attribute float boneIndex;
+    // attribute float boneHighlight;
     
     uniform mat4 mWorld;
     uniform mat4 mView;
@@ -120,12 +121,16 @@ export const skeletonVSText = `
     uniform vec3 bTrans[64];
     uniform vec4 bRots[64];
 
+    uniform vec4 bColors[64];
+    varying vec4 color;
+
     vec3 qtrans(vec4 q, vec3 v) {
         return v + 2.0 * cross(cross(v, q.xyz) - q.w*v, q.xyz);
     }
 
     void main () {
         int index = int(boneIndex);
+        color = bColors[index];
         gl_Position = mProj * mView * mWorld * vec4(bTrans[index] + qtrans(bRots[index], vertPosition), 1.0);
     }
 `;
@@ -133,8 +138,12 @@ export const skeletonVSText = `
 export const skeletonFSText = `
     precision mediump float;
 
+    varying vec4 color; 
+    
     void main () {
-        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        // gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        gl_FragColor = color;
+        // gl_FragColor = (boneHighlight == 1.0) ? vec4(0.0, 1.0, 0.0, 1.0) : vec4(1.0, 0.0, 0.0, 1.0);
     }
 `;
 
