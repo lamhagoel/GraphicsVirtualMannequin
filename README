@@ -1,0 +1,19 @@
+Sebastian Gaete UT EID: SWG523
+Partner: Lamha Goel UT EID: LG36694
+
+These are the main design decisions for each part of the project:
+
+Bone Picking:
+We converted the NDC coordinates to world coordinates.
+We calculate the rotation matrix and then we traverse all the bones to check any
+cylinder intersection. For this we followed the code presented in Ray Tracer and we
+adpated it to this project. Among all the intersection we took the minimum as the highlighted bone.
+
+Bone Manipulation:
+
+
+Linear-blend Skinning:
+We implemented everything in Shaders.ts -> sceneVSText.
+We took the qtrans() function given in skeletonVSText and placed in sceneVSText.
+Then as the instruction suggested for each of the 4 joins we computed the deformed position of the
+vertex.
