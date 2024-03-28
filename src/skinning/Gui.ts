@@ -222,15 +222,18 @@ export class GUI implements IGUI {
     // 2) To rotate a bone, if the mouse button is pressed and currently highlighting a bone.
     // Get normalized device coordinates 
     if (!this.dragging) {
-      // We're moving the mouse - mode 1
-      // Convert to world coordinates and then check for ray-cylinder intersection
-      let NDC: Vec4 = new Vec4([(2.0 * x / this.width) - 1.0, (-2.0 * y / this.viewPortHeight) + 1.0, -1.0, 1.0]);
-      let m_world_coor: Vec4 = this.viewMatrix().inverse().multiplyVec4(this.projMatrix().inverse().multiplyVec4(NDC));
-      m_world_coor.scale(1/m_world_coor.w);
-      // get ray direction 
-      let mouse_dir = new Vec3([m_world_coor.x, m_world_coor.y, m_world_coor.z]);
-      let pos = this.camera.pos();
-      let dir = Vec3.difference(mouse_dir, pos).normalize();
+      // convert to world coordinates
+      let ndcX = 2 * x / this.width - 1
+      let ndcY = 1 - (2 *y / this.viewPortHeight)
+      let ndc = new Vec4([ndcX, ndcY, -1, 1])
+      let projInverse = this.projMatrix().copy().inverse()
+      let unproject = projInverse.multiplyVec4(ndc)
+      unproject.w = 0
+      let viewInv = this.viewMatrix().copy().inverse()
+      let dir2 = viewInv.multiplyVec4(unproject)
+      let mouse_dir = new Vec3([dir2.x, dir2.y, dir2.z])
+      // get camera position
+      let pos = this.camera.pos().copy();
       let mesh = this.animation.getScene().meshes[0]
       let bones = mesh.bones;
       let HighlightIndex = NaN;
@@ -238,21 +241,25 @@ export class GUI implements IGUI {
       const intersects: number[] = []
       for (let i = 0; i < bones.length; i++) {
         let cur_bone = bones[i];
-        let axis = cur_bone.endpoint.copy().subtract(cur_bone.position.copy());
+        // distance to be used in cylinder intersection
         let dist = Vec3.distance(cur_bone.endpoint, cur_bone.position);
-        let tang = axis.normalize();
-        let test_random = Vec3.dot(tang, new Vec3([0, 1, 0]))
-        let random = Math.abs(test_random) < 0.999 ? new Vec3([0, 1, 0]) : new Vec3([1, 0, 0]);
+        // obtain matrix
+        let begin = cur_bone.position.copy();
+        let end = cur_bone.endpoint.copy();
+        const axis = end.copy().subtract(begin); 
+        const tang = axis.normalize();
+        const test_random = Vec3.dot(tang, new Vec3([0, 1, 0]))
+        const random = Math.abs(test_random) < 0.999 ? new Vec3([0, 1, 0]) : new Vec3([1, 0, 0]);
         // let random = new Vec3([0, 1, 0]);
-        let y: Vec3 = Vec3.cross(tang, random).normalize();
-        let x: Vec3 = Vec3.cross(tang, y).normalize();
-        let Tmatrix: Mat3 =  new Mat3([
+        const y: Vec3 = Vec3.cross(tang, random).normalize();
+        const x: Vec3 = Vec3.cross(tang, y).normalize();
+        const Tmatrix =  new Mat3([
           y.x, y.y, y.z,
           tang.x, tang.y, tang.z,
           x.x, x.y, x.z]
-        );
+        ).inverse();
         // rotation bone position and end point
-        let dir_transformed = Tmatrix.copy().multiplyVec3(dir);
+        let dir_transformed = Tmatrix.copy().multiplyVec3(mouse_dir);
         // translate the position in local coordiantes to 
         let pos_transformed = Tmatrix.copy().multiplyVec3(pos.copy().subtract(cur_bone.position));
         // Cylinder intersection
@@ -276,7 +283,6 @@ export class GUI implements IGUI {
 
     }
   }
-  
   // using ray tracer code
   intersectCilinder(pos: Vec3, dirNotN: Vec3, dist: number): number {
     // normalize direction
@@ -314,71 +320,6 @@ export class GUI implements IGUI {
     return ans;
     
   }
-  // TODO: USE THE RAY TRACER INTERSECTION
-  // bool Cylinder::intersectBody(const ray &r, isect &i) const {
-  //   double x0 = r.getPosition()[0];
-  //   double y0 = r.getPosition()[1];
-  //   double x1 = r.getDirection()[0];
-  //   double y1 = r.getDirection()[1];
-  
-  //   double a = x1 * x1 + y1 * y1;
-  //   double b = 2.0 * (x0 * x1 + y0 * y1);
-  //   double c = x0 * x0 + y0 * y0 - 1.0;
-  
-  //   if (0.0 == a) {
-  //     // This implies that x1 = 0.0 and y1 = 0.0, which further
-  //     // implies that the ray is aligned with the body of the
-  //     // cylinder, so no intersection.
-  //     return false;
-  //   }
-  
-  //   double discriminant = b * b - 4.0 * a * c;
-  
-  //   if (discriminant < 0.0) {
-  //     return false;
-  //   }
-  
-  //   discriminant = sqrt(discriminant);
-  
-  //   double t2 = (-b + discriminant) / (2.0 * a);
-  
-  //   if (t2 <= RAY_EPSILON) {
-  //     return false;
-  //   }
-  
-  //   double t1 = (-b - discriminant) / (2.0 * a);
-  
-  //   if (t1 > RAY_EPSILON) {
-  //     // Two intersections.
-  //     glm::dvec3 P = r.at(t1);
-  //     double z = P[2];
-  //     if (z >= 0.0 && z <= 1.0) {
-  //       // It's okay.
-  //       i.setT(t1);
-  //       i.setN(glm::normalize(glm::dvec3(P[0], P[1], 0.0)));
-  //       return true;
-  //     }
-  //   }
-  
-  //   glm::dvec3 P = r.at(t2);
-  //   double z = P[2];
-  //   if (z >= 0.0 && z <= 1.0) {
-  //     i.setT(t2);
-  
-  //     glm::dvec3 normal(P[0], P[1], 0.0);
-  //     // In case we are _inside_ the _uncapped_ cone, we need to flip
-  //     // the normal. Essentially, the cone in this case is a
-  //     // double-sided surface and has _2_ normals
-  //     if (!capped && glm::dot(normal, r.getDirection()) > 0)
-  //       normal = -normal;
-  
-  //     i.setN(glm::normalize(normal));
-  //     return true;
-  //   }
-  
-  //   return false;
-  // }
-
   
   public getModeString(): string {
     switch (this.mode) {
