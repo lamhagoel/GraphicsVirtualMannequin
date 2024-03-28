@@ -201,20 +201,40 @@ export class GUI implements IGUI {
       }
 
       if (this.boneDragging && mouse.buttons == 1.0) {
-        // console.log("Dragging bone", this.selectedBone);
         // We have to rotate the bone instead of moving the camera
         const mesh = this.animation.getScene().meshes[0];
 
-        const direction = new Vec3([-mouseDir.x, -mouseDir.y, 0.0]).copy();
-        // // console.log(direction);
-        // direction.normalize();
+        let bonePosOnNdc = new Vec4([...mesh.bones[this.selectedBone].position.xyz, 1.0]);
+        bonePosOnNdc = this.viewMatrix().copy().multiplyVec4(bonePosOnNdc);
+        bonePosOnNdc = this.projMatrix().copy().multiplyVec4(bonePosOnNdc);
+        bonePosOnNdc.scale(1/bonePosOnNdc.w);
 
-        const rotationAxis: Vec3 = Vec3.cross(this.camera.forward(), direction).copy();
-        // let rotationAxis =  Vec3.cross(this.camera.forward(), mouseDir);
-        // rotationAxis.normalize();
+        // let bonePosOnScreen = new Vec2([(bonePosOnNdc.x + 1)*this.width/2.0, (1 - bonePosOnNdc.y)*this.viewPortHeight/2.0]);
+
+        let boneEndpointOnNdc = new Vec4([...mesh.bones[this.selectedBone].endpoint.xyz, 1.0]);
+        boneEndpointOnNdc = this.viewMatrix().copy().multiplyVec4(boneEndpointOnNdc);
+        boneEndpointOnNdc = this.projMatrix().copy().multiplyVec4(boneEndpointOnNdc);
+        boneEndpointOnNdc.scale(1/boneEndpointOnNdc.w);
+
+        // let boneEndpointOnScreen = new Vec2([(boneEndpointOnNdc.x + 1)*this.width/2.0, (1 - boneEndpointOnNdc.y)*this.viewPortHeight/2.0]);
+
+
+        let vec1 = new Vec2(Vec4.difference(boneEndpointOnNdc, bonePosOnNdc).xy);
+        
+        let ndcX = 2.0 * mouse.offsetX / this.width - 1.0;
+        let ndcY = 1.0 - (2.0 * mouse.offsetY / this.viewPortHeight);
+        let mousePosInNdc = new Vec2([ndcX, ndcY]);
+
+        let vec2 = Vec2.difference(mousePosInNdc, new Vec2(bonePosOnNdc.xy));
+
+        vec1.normalize();
+        vec2.normalize();
+
+        let angle = Math.atan2(vec2.y, vec2.x) - Math.atan2(vec1.y, vec1.x);
+        // console.log(vec1.xy, vec2.xy, "Angle", angle*180/Math.PI, Math.atan2(vec2.y, vec2.x)*180/Math.PI, Math.atan2(vec1.y, vec1.x)*180/Math.PI);
         
         if (!Number.isNaN(this.selectedBone)) {
-          mesh.bones[this.selectedBone].rotateBone(rotationAxis, GUI.rotationSpeed);
+          mesh.bones[this.selectedBone].rotateBone(this.camera.forward(), angle);
           mesh.updateMesh(this.selectedBone, null, null);
         }
       }
@@ -309,7 +329,7 @@ export class GUI implements IGUI {
         bones[HighlightIndex].isHighlight = true;
         this.selectedBone = HighlightIndex;
 
-        console.log(this.selectedBone);
+        // console.log(this.selectedBone);
       } 
 
     }
