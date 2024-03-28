@@ -9,8 +9,12 @@ We calculate the rotation matrix and then we traverse all the bones to check any
 cylinder intersection. For this we followed the code presented in Ray Tracer and we
 adpated it to this project. Among all the intersection we took the minimum as the highlighted bone.
 
-Bone Manipulation:
+To allow the user to see the highlighted bone, we simply change its color to green (this is done by passing different color to the shader for the highlighted bone).
 
+Bone Manipulation:
+To rotate the bone, we use camera's forward direction as the rotation axis, and use the mouse cursor location to determine the angle of rotation. This allows the movement of bones during rotation to follow the mouse cursor, making it a bit intuitive. In particular, we convert the mouse cursor coordinates and the bone joint position and endpoint, all to NDC coordinates, and find the angle between the two vectors : [bonePosition, boneEndpoint] and [bonePosition, mouseCursor] using arctan. The rotation is done by updating R_i of the bone using quarternions, calculating its D_i using the parent's D_i recursively, and updating the bone's position, endpoint, and the rotation for the shader. We then recursively updating the position, endpoint and rotation of the child bones. T_ij (which is required for computing D_i) is computed at the beginning using initial position and endpoints, and never changes later on.
+
+For rolling the bone, the rotation logic stays the same, just the rotation axis and angle change. The rotation axis is simply the axis going from the bone position to the bone end point in the bone's local coordinates (so we can use the initial position and endpoint to calculate this), and for angle, we use rollSpeed to ensure that's the speed it rolls at on each press of the arrow.
 
 Linear-blend Skinning:
 We implemented everything in Shaders.ts -> sceneVSText.
