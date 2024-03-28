@@ -200,19 +200,19 @@ export class GUI implements IGUI {
         return;
       }
 
-      if (this.boneDragging && mouse.buttons == 1) {
-        console.log("Dragging bone", this.selectedBone);
+      if (this.boneDragging && mouse.buttons == 1.0) {
+        // console.log("Dragging bone", this.selectedBone);
         // We have to rotate the bone instead of moving the camera
-        let mesh = this.animation.getScene().meshes[0];
+        const mesh = this.animation.getScene().meshes[0];
 
-        // let direction = new Vec3([mouseDir.x, mouseDir.y, 0.0]);
+        const direction = new Vec3([-mouseDir.x, -mouseDir.y, 0.0]).copy();
         // // console.log(direction);
         // direction.normalize();
 
-        // let rotationAxis =  Vec3.cross(this.camera.forward(), direction);
-        let rotationAxis =  Vec3.cross(this.camera.forward(), mouseDir);
-        rotationAxis.normalize();
-
+        const rotationAxis: Vec3 = Vec3.cross(this.camera.forward(), direction).copy();
+        // let rotationAxis =  Vec3.cross(this.camera.forward(), mouseDir);
+        // rotationAxis.normalize();
+        
         if (!Number.isNaN(this.selectedBone)) {
           mesh.bones[this.selectedBone].rotateBone(rotationAxis, GUI.rotationSpeed);
           mesh.updateMesh(this.selectedBone, null, null);
@@ -250,12 +250,12 @@ export class GUI implements IGUI {
     // Get normalized device coordinates 
     if (!this.dragging) {
       // convert to world coordinates
-      let ndcX = 2 * x / this.width - 1
-      let ndcY = 1 - (2 *y / this.viewPortHeight)
-      let ndc = new Vec4([ndcX, ndcY, -1, 1])
+      let ndcX = 2.0 * x / this.width - 1.0
+      let ndcY = 1.0 - (2.0 *y / this.viewPortHeight)
+      let ndc = new Vec4([ndcX, ndcY, -1.0, 1.0])
       let projInverse = this.projMatrix().copy().inverse()
       let unproject = projInverse.multiplyVec4(ndc)
-      unproject.w = 0
+      unproject.w = 0.0
       let viewInv = this.viewMatrix().copy().inverse()
       let dir2 = viewInv.multiplyVec4(unproject)
       let mouse_dir = new Vec3([dir2.x, dir2.y, dir2.z])
@@ -324,23 +324,23 @@ export class GUI implements IGUI {
     const c = pos.x * pos.x + pos.z * pos.z - RADIUS_BONE * RADIUS_BONE;
     const discriminant = b * b - 4 * a * c;
 
-    if (discriminant < 0) {
+    if (discriminant < 0.0) {
       return NaN;
     }
   
-    const t1 = (-b - Math.sqrt(discriminant)) / (2 * a);
-    const t2 = (-b + Math.sqrt(discriminant)) / (2 * a);
+    const t1 = (-b - Math.sqrt(discriminant)) / (2.0 * a);
+    const t2 = (-b + Math.sqrt(discriminant)) / (2.0 * a);
 
     const y1 = pos.y + t1 * dir.y;
     const y2 = pos.y + t2 * dir.y;
   
     let ans = Number.MAX_VALUE;
   
-    if (y1 >= 0 && y1 <= dist) {
+    if (y1 >= 0.0 && y1 <= dist) {
       ans = Math.min(ans, t1);
     }
   
-    if (y2 >= 0 && y2 <= dist) {
+    if (y2 >= 0.0 && y2 <= dist) {
       ans = Math.min(ans, t2);
     }
   
@@ -366,8 +366,8 @@ export class GUI implements IGUI {
   public dragEnd(mouse: MouseEvent): void {
     this.dragging = false;
     this.boneDragging = false;
-    this.prevX = 0;
-    this.prevY = 0;
+    this.prevX = 0.0;
+    this.prevY = 0.0;
 	
     // TODO: Handle ending highlight/dragging logic as needed
   
@@ -431,14 +431,28 @@ export class GUI implements IGUI {
         this.animation.reset();
         break;
       }
-      case "ArrowLeft": {
-		//TODO: Handle bone rolls when a bone is selected
-		this.camera.roll(GUI.rollSpeed, false);
+      case "ArrowLeft": {      
+        let mesh = this.animation.getScene().meshes[0];
+        let rotationAxis =  Vec3.difference(mesh.bones[this.selectedBone].initEndpoint, mesh.bones[this.selectedBone].initPosition);
+
+        if (!Number.isNaN(this.selectedBone)) {
+          mesh.bones[this.selectedBone].rotateBone(rotationAxis, GUI.rotationSpeed);
+          mesh.updateMesh(this.selectedBone, null, null);
+        } else {
+          this.camera.roll(GUI.rollSpeed, false);
+        }
         break;
       }
       case "ArrowRight": {
-		//TODO: Handle bone rolls when a bone is selected
-		this.camera.roll(GUI.rollSpeed, true);
+        let mesh = this.animation.getScene().meshes[0];
+        let rotationAxis =  Vec3.difference(mesh.bones[this.selectedBone].initEndpoint, mesh.bones[this.selectedBone].initPosition);
+
+        if (!Number.isNaN(this.selectedBone)) {
+          mesh.bones[this.selectedBone].rotateBone(rotationAxis, -GUI.rotationSpeed);
+          mesh.updateMesh(this.selectedBone, null, null);
+        } else {
+          this.camera.roll(GUI.rollSpeed, false);
+        }
         break;
       }
       case "ArrowUp": {

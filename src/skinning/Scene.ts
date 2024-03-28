@@ -74,13 +74,14 @@ export class Bone {
     // TODO: Initialize correctly wrt parent bones
     // this.U_i = new Mat4().setIdentity();
     // this.D_i = new Mat4().setIdentity();
-    this.T_ij = new Mat4().setIdentity(); // We fix this initialization after initializing all bones
-    this.R_i = new Quat().setIdentity();
+    this.T_ij = new Mat4().setIdentity().copy(); // We fix this initialization after initializing all bones
+    this.R_i = new Quat().setIdentity().copy();
   }
 
   public rotateBone(axis: Vec3, angle: number) {
-    console.log("Axis for rotation", axis.xyz, "Quat to multiply", Quat.fromAxisAngle(axis, angle).xyzw);
-    this.R_i.multiply(Quat.fromAxisAngle(axis, angle));
+    // console.log("Axis for rotation", axis.xyz, "Quat to multiply", Quat.fromAxisAngle(axis, angle).xyzw);
+    this.R_i = Quat.product(this.R_i, Quat.fromAxisAngle(axis, angle)).copy()
+    // this.R_i.multiply(Quat.fromAxisAngle(axis, angle));
   }
 }
 
@@ -114,7 +115,7 @@ export class Mesh {
       }
       bone.T_ij.translate(translation);
     });
-    console.log("Number of bones", this.bones.length);
+    // console.log("Number of bones", this.bones.length);
     this.materialName = mesh.materialName;
     this.imgSrc = null;
     this.boneIndices = Array.from(mesh.boneIndices);
@@ -128,13 +129,13 @@ export class Mesh {
     let U_i = new Mat4().setIdentity();
     let curBone = this.bones[bone];
     let parent = curBone.parent;
-    if (parent == -1) {
+    if (parent == -1.0) {
       // Root bone/joint
       U_i.translate(curBone.initPosition);
       return U_i;
     }
 
-    let U_parent = this.getU_i(parent);
+    let U_parent = this.getU_i(parent).copy();
     return Mat4.product(U_parent, curBone.T_ij);
   };
 
@@ -145,11 +146,11 @@ export class Mesh {
     if (parent == -1) {
       // Root bone/joint
       D_i.translate(curBone.initPosition);
-      console.log("Root D_i", D_i.all(), curBone.initPosition.xyz);
+      // console.log("Root D_i", D_i.all(), curBone.initPosition.xyz);
       return Mat4.product(curBone.T_ij, curBone.R_i.toMat4());
     }
 
-    let D_parent = this.getD_i(parent);
+    let D_parent = this.getD_i(parent).copy();
     return Mat4.product(D_parent, (Mat4.product(curBone.T_ij, curBone.R_i.toMat4())));
   };
 
@@ -157,61 +158,44 @@ export class Mesh {
     let curBone = this.bones[bone];
     let R_i = curBone.R_i;
     let parent = curBone.parent;
-    if (parent == -1) {
+    if (parent == -1.0) {
       // Root bone/joint
       return R_i;
     }
 
-    let R_parent = this.getR_i(parent);
+    let R_parent = this.getR_i(parent).copy();
     return Quat.product(R_parent, R_i);
   };
 
   public updateMesh(bone: number, D_parent: Mat4 | null, rot_parent: Quat | null) {
-    console.log("Updating mesh", bone, rot_parent?.copy(), this.bones[bone].parent);
+    // console.log("Updating mesh", bone, rot_parent?.copy(), this.bones[bone].parent);
     //TODO: Implement
-    let D_i: Mat4;
-    let rotation_i: Quat;
+    let D_i: Mat4 = new Mat4().setIdentity();;
+    let rotation_i: Quat = new Quat().setIdentity().copy();
     // let T_i: Mat4;  // Translation component of D_i
 
     let boneInstance = this.bones[bone];
     // Update position and rotate from D_i for this bone and all child bones
     if (D_parent == null || rot_parent == null) {
-      D_i = this.getD_i(bone);   
-      rotation_i = boneInstance.R_i; // TODO: check if we need to do this, or just take boneInstance.R_i or this.getR_i(bone);
-      console.log("Start bone D_i and rotation", D_i.all(), rotation_i.xyzw);
-      // console.log("Start bone parent D_i", D_parent.all());
-      if (this.bones[bone].parent != -1) {
-        console.log(this.bones[this.bones[bone].parent].position.xyz, this.bones[this.bones[bone].parent].endpoint.xyz, this.bones[bone].position.xyz, this.bones[bone].endpoint.xyz);
-        console.log(this.bones[this.bones[bone].parent].initPosition.xyz, this.bones[this.bones[bone].parent].initEndpoint.xyz, this.bones[bone].initPosition.xyz, this.bones[bone].initEndpoint.xyz);  
-      }
-      console.log(this.bones[bone].T_ij.all(), this.bones[bone].R_i.xyzw, this.bones[bone].R_i.toMat4().all());
+      D_i = this.getD_i(bone).copy();   
+      // rotation_i = boneInstance.R_i.copy();
+      rotation_i = this.getR_i(bone).copy(); // TODO: check if we need to do this, or just take boneInstance.R_i or this.getR_i(bone);
     }
     else {
-      D_i = Mat4.product(D_parent, Mat4.product(boneInstance.T_ij, boneInstance.R_i.toMat4()));
-      rotation_i = Quat.product(rot_parent, boneInstance.R_i);
-      console.log(D_parent.all(), boneInstance.T_ij.all(), boneInstance.R_i.xyzw, boneInstance.R_i.toMat4().all());
-      console.log(D_i.all());
-      console.log(rot_parent.xyzw, boneInstance.R_i.xyzw, rotation_i.xyzw);
-      console.log(this.bones[this.bones[bone].parent].position.xyz, this.bones[this.bones[bone].parent].endpoint.xyz, this.bones[bone].position.xyz, this.bones[bone].endpoint.xyz);
-      console.log(this.bones[this.bones[bone].parent].initPosition.xyz, this.bones[this.bones[bone].parent].initEndpoint.xyz, this.bones[bone].initPosition.xyz, this.bones[bone].initEndpoint.xyz);  
+      D_i = Mat4.product(D_parent, Mat4.product(boneInstance.T_ij.copy(), boneInstance.R_i.toMat4().copy())).copy();
+      rotation_i = Quat.product(rot_parent.copy(), boneInstance.R_i.copy()).copy(); 
     }
 
     // T_i = new Mat4().setIdentity();
     // T_i.translate(new Vec3([D_i[12], D_i[13], D_i[14]]));
 
     for (let i = 0; i < boneInstance.children.length; i++) {
-      this.updateMesh(boneInstance.children[i], D_i, rotation_i);
+      this.updateMesh(boneInstance.children[i], D_i.copy(), rotation_i.copy());
     }
 
-    boneInstance.position = D_i.multiplyPt3(new Vec3([0,0,0])); // Initial position will be origin in the local system
-    boneInstance.endpoint = D_i.multiplyPt3(Vec3.difference(boneInstance.initEndpoint,boneInstance.initPosition));
-    boneInstance.rotation = rotation_i;
-
-    if (this.bones[bone].parent != -1) {
-      console.log("For bone", bone);
-      console.log(this.bones[this.bones[bone].parent].position.xyz, this.bones[this.bones[bone].parent].endpoint.xyz, this.bones[bone].position.xyz, this.bones[bone].endpoint.xyz);
-      console.log(this.bones[this.bones[bone].parent].initPosition.xyz, this.bones[this.bones[bone].parent].initEndpoint.xyz, this.bones[bone].initPosition.xyz, this.bones[bone].initEndpoint.xyz);  
-    }
+    boneInstance.position = D_i.multiplyPt3(new Vec3([0,0,0])).copy(); // Initial position will be origin in the local system
+    boneInstance.endpoint = D_i.multiplyPt3(Vec3.difference(boneInstance.initEndpoint,boneInstance.initPosition)).copy();
+    boneInstance.rotation = rotation_i.copy();
 
   }
 

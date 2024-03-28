@@ -75,10 +75,35 @@ export const sceneVSText = `
     uniform vec3 jTrans[64];
     uniform vec4 jRots[64];
 
+    vec3 qtrans(vec4 q, vec3 v) {
+        return v + 2.0 * cross(cross(v, q.xyz) - q.w*v, q.xyz);
+    }
+
+    int idx;
+    float wij;
+    vec4 vj;
 
     void main () {
-	
-        vec3 trans = vertPosition;
+
+        vec3 trans = vec3(0, 0, 0);
+        for(int i = 0; i < 4; i++){
+            if (i == 0){
+                vj = v0;
+            } else if (i == 1){
+                vj = v1;
+            } else if (i == 2){
+                vj = v2;
+            } else {
+                vj = v3;
+            }
+            idx = int(skinIndices[i]);
+            wij = float(skinWeights[i]);
+            vec3 local = jTrans[idx] + qtrans(jRots[idx], vj.xyz);
+            trans.x = trans.x + (wij * local.x);
+            trans.y = trans.y + (wij * local.y);
+            trans.z = trans.z + (wij * local.z);
+        }
+
         vec4 worldPosition = mWorld * vec4(trans, 1.0);
         gl_Position = mProj * mView * worldPosition;
         
