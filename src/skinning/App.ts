@@ -218,7 +218,6 @@ export class SkinningAnimation extends CanvasAnimation {
       (gl: WebGLRenderingContext, loc: WebGLUniformLocation) => {
         gl.uniform4fv(loc, this.getScene().meshes[0].getBoneRotations());
     });
-    // TODO: confirm
     this.skeletonRenderPass.addUniform("bColors",
       (gl: WebGLRenderingContext, loc: WebGLUniformLocation) => {
           gl.uniform4fv(loc, this.getScene().meshes[0].getBoneColors());

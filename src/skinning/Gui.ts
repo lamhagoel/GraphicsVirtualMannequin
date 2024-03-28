@@ -153,7 +153,7 @@ export class GUI implements IGUI {
       return;
     }
 	
-    // TODO: Add logic to rotate the bones, instead of moving the camera, if there is a currently highlighted bone
+    // Rotate the bones, instead of moving the camera, if there is a currently highlighted bone
     // let mesh = this.animation.getScene().meshes[0];
     if (!Number.isNaN(this.selectedBone)) {
       this.boneDragging = true;
