@@ -5,7 +5,7 @@ import { Mat3, Mat4, Vec3, Vec4, Vec2, Mat2, Quat } from "../lib/TSM.js";
 import { Bone } from "./Scene.js";
 import { RenderPass } from "../lib/webglutils/RenderPass.js";
 
-let RAY_EPSILON = 0.0001;
+let RADIUS_BONE = 0.1;
 /**
  * Might be useful for designing any animation GUI
  */
@@ -226,107 +226,93 @@ export class GUI implements IGUI {
       // Convert to world coordinates and then check for ray-cylinder intersection
       let NDC: Vec4 = new Vec4([(2.0 * x / this.width) - 1.0, (-2.0 * y / this.viewPortHeight) + 1.0, -1.0, 1.0]);
       let m_world_coor: Vec4 = this.viewMatrix().inverse().multiplyVec4(this.projMatrix().inverse().multiplyVec4(NDC));
-      // TODO: I think it is ok to scale after all the multiplications (same as in between view and proj multiplication?)
-      // .scale scales a vec4 by a scalar number, w should be 1
-      m_world_coor.scale(m_world_coor.w);
+      m_world_coor.scale(1/m_world_coor.w);
       // get ray direction 
       let mouse_dir = new Vec3([m_world_coor.x, m_world_coor.y, m_world_coor.z]);
       let pos = this.camera.pos();
       let dir = Vec3.difference(mouse_dir, pos).normalize();
-      
       let mesh = this.animation.getScene().meshes[0]
       let bones = mesh.bones;
-      let i = 0;
-      let minimum_t = Number.MAX_VALUE;
-      let selected_bone: Bone | null = null; 
-
-      while (i < bones.length) {
+      let HighlightIndex = NaN;
+      let minT = Number.MAX_SAFE_INTEGER;
+      const intersects: number[] = []
+      for (let i = 0; i < bones.length; i++) {
         let cur_bone = bones[i];
-        let axis: Vec3 = Vec3.difference(cur_bone.endpoint, cur_bone.position);
+        let axis = cur_bone.endpoint.copy().subtract(cur_bone.position.copy());
+        let dist = Vec3.distance(cur_bone.endpoint, cur_bone.position);
         let tang = axis.normalize();
-        // TODO: I saw this on internet, have no idea why we do this next two lines
-        // TODO: remove comment
         let test_random = Vec3.dot(tang, new Vec3([0, 1, 0]))
         let random = Math.abs(test_random) < 0.999 ? new Vec3([0, 1, 0]) : new Vec3([1, 0, 0]);
-        // let random = 1 ? new Vec3([0, 1, 0]) : new Vec3([1, 0, 0]);
+        // let random = new Vec3([0, 1, 0]);
         let y: Vec3 = Vec3.cross(tang, random).normalize();
         let x: Vec3 = Vec3.cross(tang, y).normalize();
-        let Tmatrix: Mat3 = new Mat3([
+        let Tmatrix: Mat3 =  new Mat3([
           y.x, y.y, y.z,
           tang.x, tang.y, tang.z,
           x.x, x.y, x.z]
-        ).inverse();
+        );
         // rotation bone position and end point
-        let dir_transformed = Tmatrix.copy().multiplyVec3(dir).normalize();
-        let pos_transformed = Tmatrix.copy().multiplyVec3(pos.copy())
-        let bone_position_transformed: Vec3 = Tmatrix.multiplyVec3(cur_bone.position);
-        let bone_endpoint_transformed: Vec3 = Tmatrix.multiplyVec3(cur_bone.endpoint);
+        let dir_transformed = Tmatrix.copy().multiplyVec3(dir);
         // translate the position in local coordiantes to 
-        let pos_in_local = Vec3.difference(pos_transformed, bone_position_transformed);
-        let end_in_local = Vec3.difference(bone_endpoint_transformed, bone_position_transformed)
+        let pos_transformed = Tmatrix.copy().multiplyVec3(pos.copy().subtract(cur_bone.position));
         // Cylinder intersection
-        let min = Math.min(0.0, end_in_local.z);
-        let max = Math.max(0.0, end_in_local.z);
-        let result_intersection = this.intersectCilinder(pos_in_local, dir_transformed, min, max);
-        // check result
-        // TODO: I think we can just break the while loop if we just find the first that matches
-        // I do not know if it makes any difference in cases where bones are ver close? ray_epsilon is quite small
-        if (result_intersection < minimum_t) {
-          minimum_t = result_intersection;
-          selected_bone = cur_bone;
-        // if it is selected we need to make it false
-        } else if(cur_bone.isHighlight) {
-          bones[i].isHighlight = false;
-          mesh.selectedBone = null;
-        }
-        i += 1;
+        let result_intersection = this.intersectCilinder(pos_transformed, dir_transformed, dist);
+        intersects.push(result_intersection)
       }
-      // highlight the selected bone and set the bone to the mesh
-      if (selected_bone != null) {
-        mesh.selectedBone = selected_bone;
-        mesh.selectedBone.isHighlight = true;
+
+      // Highlight the minimum distance bone
+      for (let i = 0; i < intersects.length; i++){
+        if(!Number.isNaN(intersects[i])){
+          if(intersects[i] <= minT){
+            HighlightIndex = i;
+            minT = intersects[i];
+          }
+        } 
+        bones[i].isHighlight = false;
       }
-      
+      if(!Number.isNaN(HighlightIndex)){
+        bones[HighlightIndex].isHighlight = true;
+      } 
+
     }
   }
+  
   // using ray tracer code
-  public intersectCilinder(pos_in_local: Vec3, dir_transformed: Vec3, min: number, max: number): number {
-    let a = Math.pow(dir_transformed.x, 2) + Math.pow(dir_transformed.y, 2);
-    let b = 2.0 * (pos_in_local.x * dir_transformed.x + pos_in_local.y * dir_transformed.y);
-    // TODO: confirm 0.1
-    let c = pos_in_local.x * pos_in_local.x + pos_in_local.y * pos_in_local.y - 0.1 * 0.1;
-    let discriminant = (Math.pow(b, 2) - 4*a*c);
-    if (0.0 == a || discriminant < 0.0) {
-      // This implies that x1 = 0.0 and y1 = 0.0, which further
-      // implies that the ray is aligned with the body of the
-      // cylinder, so no intersection.
-      return Number.MAX_SAFE_INTEGER;
-      // TODO: confirm if break here
-    } else {
-      // solving quadratic ecuation
-      let x1 = ( (-1 * b) + Math.sqrt(discriminant))/ (2*a)
-      let x2 = ( (-1 * b) - Math.sqrt(discriminant))/ (2*a)
+  intersectCilinder(pos: Vec3, dirNotN: Vec3, dist: number): number {
+    // normalize direction
+    const dir = dirNotN.copy().normalize()
+    // solving quadratic
+    const a = dir.x * dir.x + dir.z * dir.z;
+    const b = 2 * (pos.x * dir.x + pos.z * dir.z);
+    const c = pos.x * pos.x + pos.z * pos.z - RADIUS_BONE * RADIUS_BONE;
+    const discriminant = b * b - 4 * a * c;
 
-      if (x2 <= RAY_EPSILON) {
-        return Number.MAX_SAFE_INTEGER;
-      }
-
-      if (x1 > RAY_EPSILON) {
-          // Two intersections.
-          let P: Vec3 = Vec3.sum(pos_in_local, dir_transformed.scale(x1));
-          let z = P.z;
-          if (z >= min && z <= max) {
-              return x1;
-          }
-      }
-
-      let P: Vec3 = Vec3.sum(pos_in_local, dir_transformed.scale(x2));
-      let z = P.z;
-      if (z >= min && z <= max) {
-          return x2;
-      } 
+    if (discriminant < 0) {
+      return NaN;
     }
-    return Number.MAX_SAFE_INTEGER;
+  
+    const t1 = (-b - Math.sqrt(discriminant)) / (2 * a);
+    const t2 = (-b + Math.sqrt(discriminant)) / (2 * a);
+
+    const y1 = pos.y + t1 * dir.y;
+    const y2 = pos.y + t2 * dir.y;
+  
+    let ans = Number.MAX_VALUE;
+  
+    if (y1 >= 0 && y1 <= dist) {
+      ans = Math.min(ans, t1);
+    }
+  
+    if (y2 >= 0 && y2 <= dist) {
+      ans = Math.min(ans, t2);
+    }
+  
+    if (ans === Number.MAX_VALUE) {
+      return NaN;
+    }
+  
+    return ans;
+    
   }
   // TODO: USE THE RAY TRACER INTERSECTION
   // bool Cylinder::intersectBody(const ray &r, isect &i) const {

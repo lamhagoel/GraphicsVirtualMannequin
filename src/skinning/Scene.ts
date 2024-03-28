@@ -72,7 +72,7 @@ export class Mesh {
   private bonePositions: Float32Array;
   private boneIndexAttribute: Float32Array;
 
-  public selectedBone: Bone | null; // to know if the mesh bone is selected
+  // public selectedBone: Bone | null; // to know if the mesh bone is selected
 
   constructor(mesh: MeshLoader) {
     this.geometry = new MeshGeometry(mesh.geometry);
