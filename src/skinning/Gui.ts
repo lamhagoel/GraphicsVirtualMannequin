@@ -97,6 +97,8 @@ export class GUI implements IGUI {
   public reset(): void {
     this.fps = false;
     this.dragging = false;
+    this.boneDragging = false;
+    this.selectedBone = NaN;
     this.time = 0;
 	this.mode = Mode.edit;
     
@@ -152,6 +154,10 @@ export class GUI implements IGUI {
     }
 	
     // TODO: Add logic to rotate the bones, instead of moving the camera, if there is a currently highlighted bone
+    // let mesh = this.animation.getScene().meshes[0];
+    if (!Number.isNaN(this.selectedBone)) {
+      this.boneDragging = true;
+    }
     
     this.dragging = true;
     this.prevX = mouse.screenX;
@@ -194,28 +200,49 @@ export class GUI implements IGUI {
         return;
       }
 
-      switch (mouse.buttons) {
-        case 1: {
-          let rotAxis: Vec3 = Vec3.cross(this.camera.forward(), mouseDir);
-          rotAxis = rotAxis.normalize();
+      if (this.boneDragging && mouse.buttons == 1) {
+        console.log("Dragging bone", this.selectedBone);
+        // We have to rotate the bone instead of moving the camera
+        let mesh = this.animation.getScene().meshes[0];
 
-          if (this.fps) {
-            this.camera.rotate(rotAxis, GUI.rotationSpeed);
-          } else {
-            this.camera.orbitTarget(rotAxis, GUI.rotationSpeed);
-          }
-          // TODO: include left click with highlight == true
-          break;
-        }
-        case 2: {
-          /* Right button, or secondary button */
-          this.camera.offsetDist(Math.sign(mouseDir.y) * GUI.zoomSpeed);
-          break;
-        }
-        default: {
-          break;
+        // let direction = new Vec3([mouseDir.x, mouseDir.y, 0.0]);
+        // // console.log(direction);
+        // direction.normalize();
+
+        // let rotationAxis =  Vec3.cross(this.camera.forward(), direction);
+        let rotationAxis =  Vec3.cross(this.camera.forward(), mouseDir);
+        rotationAxis.normalize();
+
+        if (!Number.isNaN(this.selectedBone)) {
+          mesh.bones[this.selectedBone].rotateBone(rotationAxis, GUI.rotationSpeed);
+          mesh.updateMesh(this.selectedBone, null, null);
         }
       }
+
+      else {
+        switch (mouse.buttons) {
+          case 1: {
+            let rotAxis: Vec3 = Vec3.cross(this.camera.forward(), mouseDir);
+            rotAxis = rotAxis.normalize();
+  
+            if (this.fps) {
+              this.camera.rotate(rotAxis, GUI.rotationSpeed);
+            } else {
+              this.camera.orbitTarget(rotAxis, GUI.rotationSpeed);
+            }
+            // TODO: include left click with highlight == true
+            break;
+          }
+          case 2: {
+            /* Right button, or secondary button */
+            this.camera.offsetDist(Math.sign(mouseDir.y) * GUI.zoomSpeed);
+            break;
+          }
+          default: {
+            break;
+          }
+        }
+      }   
     } 
     // TODO: Add logic here:
     // 1) To highlight a bone, if the mouse is hovering over a bone;
@@ -276,9 +303,13 @@ export class GUI implements IGUI {
           }
         } 
         bones[i].isHighlight = false;
+        this.selectedBone = NaN;
       }
       if(!Number.isNaN(HighlightIndex)){
         bones[HighlightIndex].isHighlight = true;
+        this.selectedBone = HighlightIndex;
+
+        console.log(this.selectedBone);
       } 
 
     }
@@ -334,6 +365,7 @@ export class GUI implements IGUI {
    */
   public dragEnd(mouse: MouseEvent): void {
     this.dragging = false;
+    this.boneDragging = false;
     this.prevX = 0;
     this.prevY = 0;
 	
