@@ -67,7 +67,6 @@ export class SkinningAnimation extends CanvasAnimation {
     this.floorRenderPass = new RenderPass(this.extVAO, gl, floorVSText, floorFSText);
     this.sceneRenderPass = new RenderPass(this.extVAO, gl, sceneVSText, sceneFSText);
     this.skeletonRenderPass = new RenderPass(this.extVAO, gl, skeletonVSText, skeletonFSText);
-	//TODO: Add in other rendering initializations for other shaders such as bone highlighting
 
     this.gui = new GUI(this.canvas2d, this);
     this.lightPosition = new Vec4([-10, 10, -10, 1]);
@@ -227,8 +226,6 @@ export class SkinningAnimation extends CanvasAnimation {
     this.skeletonRenderPass.setup();
   }
 
-  	//TODO: Set up a Render Pass for the bone highlighting
-
   /**
    * Sets up the floor drawing
    */
@@ -327,7 +324,6 @@ export class SkinningAnimation extends CanvasAnimation {
       this.sceneRenderPass.draw();
       gl.disable(gl.DEPTH_TEST);
       this.skeletonRenderPass.draw();
-	  //TODO: Add functionality for drawing the highlighted bone when necessary
       gl.enable(gl.DEPTH_TEST);      
     }
   }

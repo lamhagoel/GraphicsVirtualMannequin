@@ -75,10 +75,12 @@ export const sceneVSText = `
     uniform vec3 jTrans[64];
     uniform vec4 jRots[64];
 
+    // get qtrans function from skeletonVSText
     vec3 qtrans(vec4 q, vec3 v) {
         return v + 2.0 * cross(cross(v, q.xyz) - q.w*v, q.xyz);
     }
-
+    
+    // defining indexes, weigths and joints
     int idx;
     float wij;
     vec4 vj;

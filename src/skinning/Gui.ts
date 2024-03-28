@@ -154,7 +154,6 @@ export class GUI implements IGUI {
     }
 	
     // Rotate the bones, instead of moving the camera, if there is a currently highlighted bone
-    // let mesh = this.animation.getScene().meshes[0];
     if (!Number.isNaN(this.selectedBone)) {
       this.boneDragging = true;
     }
@@ -209,15 +208,10 @@ export class GUI implements IGUI {
         bonePosOnNdc = this.projMatrix().copy().multiplyVec4(bonePosOnNdc);
         bonePosOnNdc.scale(1/bonePosOnNdc.w);
 
-        // let bonePosOnScreen = new Vec2([(bonePosOnNdc.x + 1)*this.width/2.0, (1 - bonePosOnNdc.y)*this.viewPortHeight/2.0]);
-
         let boneEndpointOnNdc = new Vec4([...mesh.bones[this.selectedBone].endpoint.xyz, 1.0]);
         boneEndpointOnNdc = this.viewMatrix().copy().multiplyVec4(boneEndpointOnNdc);
         boneEndpointOnNdc = this.projMatrix().copy().multiplyVec4(boneEndpointOnNdc);
         boneEndpointOnNdc.scale(1/boneEndpointOnNdc.w);
-
-        // let boneEndpointOnScreen = new Vec2([(boneEndpointOnNdc.x + 1)*this.width/2.0, (1 - boneEndpointOnNdc.y)*this.viewPortHeight/2.0]);
-
 
         let vec1 = new Vec2(Vec4.difference(boneEndpointOnNdc, bonePosOnNdc).xy);
         
@@ -231,8 +225,7 @@ export class GUI implements IGUI {
         vec2.normalize();
 
         let angle = Math.atan2(vec2.y, vec2.x) - Math.atan2(vec1.y, vec1.x);
-        // console.log(vec1.xy, vec2.xy, "Angle", angle*180/Math.PI, Math.atan2(vec2.y, vec2.x)*180/Math.PI, Math.atan2(vec1.y, vec1.x)*180/Math.PI);
-        
+
         if (!Number.isNaN(this.selectedBone)) {
           mesh.bones[this.selectedBone].rotateBone(this.camera.forward(), angle);
           mesh.updateMesh(this.selectedBone, null, null);
@@ -250,7 +243,6 @@ export class GUI implements IGUI {
             } else {
               this.camera.orbitTarget(rotAxis, GUI.rotationSpeed);
             }
-            // TODO: include left click with highlight == true
             break;
           }
           case 2: {
@@ -264,9 +256,6 @@ export class GUI implements IGUI {
         }
       }   
     } 
-    // TODO: Add logic here:
-    // 1) To highlight a bone, if the mouse is hovering over a bone;
-    // 2) To rotate a bone, if the mouse button is pressed and currently highlighting a bone.
     // Get normalized device coordinates 
     if (!this.dragging) {
       // convert to world coordinates
@@ -297,7 +286,6 @@ export class GUI implements IGUI {
         const tang = axis.normalize();
         const test_random = Vec3.dot(tang, new Vec3([0, 1, 0]))
         const random = Math.abs(test_random) < 0.999 ? new Vec3([0, 1, 0]) : new Vec3([1, 0, 0]);
-        // let random = new Vec3([0, 1, 0]);
         const y: Vec3 = Vec3.cross(tang, random).normalize();
         const x: Vec3 = Vec3.cross(tang, y).normalize();
         const Tmatrix =  new Mat3([
@@ -307,7 +295,6 @@ export class GUI implements IGUI {
         ).inverse();
         // rotation bone position and end point
         let dir_transformed = Tmatrix.copy().multiplyVec3(mouse_dir);
-        // translate the position in local coordiantes to 
         let pos_transformed = Tmatrix.copy().multiplyVec3(pos.copy().subtract(cur_bone.position));
         // Cylinder intersection
         let result_intersection = this.intersectCilinder(pos_transformed, dir_transformed, dist);
@@ -328,8 +315,6 @@ export class GUI implements IGUI {
       if(!Number.isNaN(HighlightIndex)){
         bones[HighlightIndex].isHighlight = true;
         this.selectedBone = HighlightIndex;
-
-        // console.log(this.selectedBone);
       } 
 
     }

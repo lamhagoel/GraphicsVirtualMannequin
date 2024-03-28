@@ -1,8 +1,6 @@
 import { Mat4, Quat, Vec3 } from "../lib/TSM.js";
 import { AttributeLoader, MeshGeometryLoader, BoneLoader, MeshLoader } from "./AnimationFileLoader.js";
 
-//TODO: Generate cylinder geometry for highlighting bones
-
 //General class for handling GLSL attributes
 export class Attribute {
   values: Float32Array;
@@ -50,9 +48,7 @@ export class Bone {
   public rotation: Quat; // current orientation of the joint *with respect to world coordinates*
   public isHighlight: boolean; // set to true if the bone is highlighted
 
-  // We'll compute them on the fly as needed instead of always maintaining them - so make sure to compute them before needed
-  // public U_i: Mat4;
-  // public D_i: Mat4;
+  // We'll compute U_i and D_i on the fly as needed instead of always maintaining them - so make sure to compute them before needed
   public T_ij: Mat4;
   public R_i: Quat; // is Mat4 in slides, but we use Quat because easy to compose, and we can easily convert from axis angle to quat, and quat to Mat4 as needed
 
@@ -68,20 +64,14 @@ export class Bone {
     this.isHighlight = false;
 
     this.initPosition = this.position.copy();
-    // console.log("Init positions", this.initPosition.xyz);
     this.initEndpoint = this.endpoint.copy();
 
-    // TODO: Initialize correctly wrt parent bones
-    // this.U_i = new Mat4().setIdentity();
-    // this.D_i = new Mat4().setIdentity();
     this.T_ij = new Mat4().setIdentity().copy(); // We fix this initialization after initializing all bones
     this.R_i = new Quat().setIdentity().copy();
   }
 
   public rotateBone(axis: Vec3, angle: number) {
-    // console.log("Axis for rotation", axis.xyz, "Quat to multiply", Quat.fromAxisAngle(axis, angle).xyzw);
     this.R_i = Quat.product(this.R_i, Quat.fromAxisAngle(axis, angle)).copy()
-    // this.R_i.multiply(Quat.fromAxisAngle(axis, angle));
   }
 }
 
@@ -98,8 +88,6 @@ export class Mesh {
   private bonePositions: Float32Array;
   private boneIndexAttribute: Float32Array;
 
-  // public selectedBone: Bone | null; // to know if the mesh bone is selected
-
   constructor(mesh: MeshLoader) {
     this.geometry = new MeshGeometry(mesh.geometry);
     this.worldMatrix = mesh.worldMatrix.copy();
@@ -115,7 +103,6 @@ export class Mesh {
       }
       bone.T_ij.translate(translation);
     });
-    // console.log("Number of bones", this.bones.length);
     this.materialName = mesh.materialName;
     this.imgSrc = null;
     this.boneIndices = Array.from(mesh.boneIndices);
@@ -146,7 +133,6 @@ export class Mesh {
     if (parent == -1) {
       // Root bone/joint
       D_i.translate(curBone.initPosition);
-      // console.log("Root D_i", D_i.all(), curBone.initPosition.xyz);
       return Mat4.product(curBone.T_ij, curBone.R_i.toMat4());
     }
 
@@ -168,26 +154,19 @@ export class Mesh {
   };
 
   public updateMesh(bone: number, D_parent: Mat4 | null, rot_parent: Quat | null) {
-    // console.log("Updating mesh", bone, rot_parent?.copy(), this.bones[bone].parent);
-    //TODO: Implement
     let D_i: Mat4 = new Mat4().setIdentity();;
     let rotation_i: Quat = new Quat().setIdentity().copy();
-    // let T_i: Mat4;  // Translation component of D_i
 
     let boneInstance = this.bones[bone];
     // Update position and rotate from D_i for this bone and all child bones
     if (D_parent == null || rot_parent == null) {
       D_i = this.getD_i(bone).copy();   
-      // rotation_i = boneInstance.R_i.copy();
-      rotation_i = this.getR_i(bone).copy(); // TODO: check if we need to do this, or just take boneInstance.R_i or this.getR_i(bone);
+      rotation_i = this.getR_i(bone).copy(); 
     }
     else {
       D_i = Mat4.product(D_parent, Mat4.product(boneInstance.T_ij.copy(), boneInstance.R_i.toMat4().copy())).copy();
       rotation_i = Quat.product(rot_parent.copy(), boneInstance.R_i.copy()).copy(); 
     }
-
-    // T_i = new Mat4().setIdentity();
-    // T_i.translate(new Vec3([D_i[12], D_i[13], D_i[14]]));
 
     for (let i = 0; i < boneInstance.children.length; i++) {
       this.updateMesh(boneInstance.children[i], D_i.copy(), rotation_i.copy());
@@ -251,6 +230,5 @@ export class Mesh {
     });
     return color;
   }
-  // TODO: change
 
 }
