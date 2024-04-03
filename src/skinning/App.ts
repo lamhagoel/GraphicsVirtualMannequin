@@ -303,12 +303,12 @@ export class SkinningAnimation extends CanvasAnimation {
     gl.cullFace(gl.BACK);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null); // null is the default frame buffer
-    this.drawScene(0, 200, 800, 600);    
+    this.drawScene(0, 200, 800, 600);
 
     /* Draw status bar */
     if (this.scene.meshes.length > 0) {
       gl.viewport(0, 0, 800, 200);
-      this.sBackRenderPass.draw();      
+      this.sBackRenderPass.draw();
     }    
 
   }

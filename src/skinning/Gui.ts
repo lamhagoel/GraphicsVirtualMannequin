@@ -44,6 +44,7 @@ export class GUI implements IGUI {
   private height: number;
   private viewPortHeight: number;
   private width: number;
+  private viewPortWidth: number;
 
   private animation: SkinningAnimation;
 
@@ -67,6 +68,7 @@ export class GUI implements IGUI {
     this.height = canvas.height;
     this.viewPortHeight = this.height - 200;
     this.width = canvas.width;
+    this.viewPortWidth = this.width - 320;
     this.prevX = 0;
     this.prevY = 0;
     
@@ -107,7 +109,7 @@ export class GUI implements IGUI {
       new Vec3([0, 0, 0]),
       new Vec3([0, 1, 0]),
       45,
-      this.width / this.viewPortHeight,
+      this.viewPortWidth / this.viewPortHeight,
       0.1,
       1000.0
     );
@@ -215,7 +217,7 @@ export class GUI implements IGUI {
 
         let vec1 = new Vec2(Vec4.difference(boneEndpointOnNdc, bonePosOnNdc).xy);
         
-        let ndcX = 2.0 * mouse.offsetX / this.width - 1.0;
+        let ndcX = 2.0 * mouse.offsetX / this.viewPortWidth - 1.0;
         let ndcY = 1.0 - (2.0 * mouse.offsetY / this.viewPortHeight);
         let mousePosInNdc = new Vec2([ndcX, ndcY]);
 
@@ -259,7 +261,7 @@ export class GUI implements IGUI {
     // Get normalized device coordinates 
     if (!this.dragging) {
       // convert to world coordinates
-      let ndcX = 2.0 * x / this.width - 1.0
+      let ndcX = 2.0 * x / this.viewPortWidth - 1.0
       let ndcY = 1.0 - (2.0 *y / this.viewPortHeight)
       let ndc = new Vec4([ndcX, ndcY, -1.0, 1.0])
       let projInverse = this.projMatrix().copy().inverse()
