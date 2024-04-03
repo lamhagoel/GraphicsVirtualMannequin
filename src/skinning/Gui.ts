@@ -23,6 +23,17 @@ export enum Mode {
   edit  
 }
 
+export class KeyFrame {
+  public bones: Bone[];
+
+  constructor(bones: Bone[]) {
+    this.bones = [];
+    bones.forEach(bone => {
+      this.bones.push(new Bone(bone));
+    });
+  }
+}
+
 	
 /**
  * Handles Mouse and Button events along with
@@ -47,6 +58,8 @@ export class GUI implements IGUI {
   private viewPortWidth: number;
 
   private animation: SkinningAnimation;
+  
+  public keyFrames: KeyFrame[];
 
   private selectedBone: number;
   private boneDragging: boolean;
@@ -71,6 +84,7 @@ export class GUI implements IGUI {
     this.viewPortWidth = this.width - 320;
     this.prevX = 0;
     this.prevY = 0;
+    this.keyFrames = [];
     
     this.animation = animation;
     
@@ -81,7 +95,8 @@ export class GUI implements IGUI {
 
   public getNumKeyFrames(): number {
     //TODO: Fix for the status bar in the GUI
-    return 0;
+    return this.keyFrames.length;
+    // return 0;
   }
   
   public getTime(): number { 
@@ -90,7 +105,7 @@ export class GUI implements IGUI {
   
   public getMaxTime(): number { 
     //TODO: The animation should stop after the last keyframe
-    return 0;
+    return this.keyFrames.length-1;
   }
 
   /**
@@ -436,6 +451,7 @@ export class GUI implements IGUI {
       }
       case "KeyR": {
         this.animation.reset();
+        this.keyFrames = [];
         break;
       }
       case "ArrowLeft": {      
@@ -472,7 +488,8 @@ export class GUI implements IGUI {
       }
       case "KeyK": {
         if (this.mode === Mode.edit) {
-		//TODO: Add keyframes if required by project spec
+		      //TODO: Add keyframes if required by project spec
+          this.keyFrames.push(new KeyFrame(this.animation.getScene().meshes[0].bones));
         }
         break;
       }      

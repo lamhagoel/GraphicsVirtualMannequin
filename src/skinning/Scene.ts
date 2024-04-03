@@ -55,7 +55,7 @@ export class Bone {
   public initPosition: Vec3;
   public initEndpoint: Vec3;
 
-  constructor(bone: BoneLoader) {
+  constructor(bone: BoneLoader | Bone) {
     this.parent = bone.parent;
     this.children = Array.from(bone.children);
     this.position = bone.position.copy();
@@ -63,11 +63,11 @@ export class Bone {
     this.rotation = bone.rotation.copy();
     this.isHighlight = false;
 
-    this.initPosition = this.position.copy();
-    this.initEndpoint = this.endpoint.copy();
+    this.initPosition = (bone instanceof Bone) ? bone.initPosition.copy() : this.position.copy();
+    this.initEndpoint = (bone instanceof Bone) ? bone.initEndpoint.copy() : this.endpoint.copy();
 
-    this.T_ij = new Mat4().setIdentity().copy(); // We fix this initialization after initializing all bones
-    this.R_i = new Quat().setIdentity().copy();
+    this.T_ij = (bone instanceof Bone) ? bone.T_ij : (new Mat4().setIdentity().copy()); // We fix this initialization after initializing all bones
+    this.R_i = (bone instanceof Bone) ? bone.R_i : (new Quat().setIdentity().copy());
   }
 
   public rotateBone(axis: Vec3, angle: number) {
@@ -153,6 +153,27 @@ export class Mesh {
     return Quat.product(R_parent, R_i);
   };
 
+  public calculateD_iAndTranslate(bone: number, D_parent: Mat4 | null) {
+    let D_i: Mat4 = new Mat4().setIdentity();;
+    // let rotation_i: Quat = new Quat().setIdentity().copy();
+
+    let boneInstance = this.bones[bone];
+    // Update position and rotate from D_i for this bone and all child bones
+    if (D_parent == null) {
+      D_i = this.getD_i(bone).copy();
+    }
+    else {
+      D_i = Mat4.product(D_parent, Mat4.product(boneInstance.T_ij.copy(), boneInstance.R_i.toMat4().copy())).copy();
+    }
+
+    for (let i = 0; i < boneInstance.children.length; i++) {
+      this.calculateD_iAndTranslate(boneInstance.children[i], D_i.copy());
+    }
+
+    boneInstance.position = D_i.multiplyPt3(new Vec3([0,0,0])).copy(); // Initial position will be origin in the local system
+    boneInstance.endpoint = D_i.multiplyPt3(Vec3.difference(boneInstance.initEndpoint,boneInstance.initPosition)).copy();
+  }
+
   public updateMesh(bone: number, D_parent: Mat4 | null, rot_parent: Quat | null) {
     let D_i: Mat4 = new Mat4().setIdentity();;
     let rotation_i: Quat = new Quat().setIdentity().copy();
@@ -175,7 +196,6 @@ export class Mesh {
     boneInstance.position = D_i.multiplyPt3(new Vec3([0,0,0])).copy(); // Initial position will be origin in the local system
     boneInstance.endpoint = D_i.multiplyPt3(Vec3.difference(boneInstance.initEndpoint,boneInstance.initPosition)).copy();
     boneInstance.rotation = rotation_i.copy();
-
   }
 
   public getBoneIndices(): Uint32Array {

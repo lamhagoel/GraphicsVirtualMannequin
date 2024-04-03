@@ -15,7 +15,7 @@ import {
   sBackVSText,
   sBackFSText
 } from "./Shaders.js";
-import { Mat4, Vec4, Vec3 } from "../lib/TSM.js";
+import { Mat4, Vec4, Vec3, Quat } from "../lib/TSM.js";
 import { CLoader } from "./AnimationFileLoader.js";
 import { RenderPass } from "../lib/webglutils/RenderPass.js";
 import { Camera } from "../lib/webglutils/Camera.js";
@@ -282,6 +282,33 @@ export class SkinningAnimation extends CanvasAnimation {
     this.millis = curr;
     deltaT /= 1000;
     this.getGUI().incrementTime(deltaT);
+
+    if (this.getGUI().mode == Mode.playback) {
+      // time should always be between 0.01 and (keyframes-1).99
+      let keyFrame1Index = Math.floor(this.getGUI().time);
+      let keyFrame2Index = keyFrame1Index+1;
+
+      let keyframe1 = this.getGUI().keyFrames[keyFrame1Index];
+      let keyframe2 = this.getGUI().keyFrames[keyFrame2Index];
+      let time = this.getGUI().time-keyFrame1Index;
+      console.log(time, deltaT, keyFrame1Index, keyFrame2Index);
+
+      // let bones = this.scene.meshes[0].bones;
+      for (let i = 0; i < this.scene.meshes[0].bones.length; i++) {
+        // let a = keyframe2.bones[i].rotation;
+        this.scene.meshes[0].bones[i].rotation = Quat.slerpShort(keyframe1.bones[i].rotation, keyframe2.bones[i].rotation, time);
+        this.scene.meshes[0].bones[i].R_i = Quat.slerpShort(keyframe1.bones[i].R_i, keyframe2.bones[i].R_i, time);
+        // this.scene.meshes[0].bones[i].position = Vec3.sum(keyframe1.bones[i].position.copy().scale(1-time), keyframe2.bones[i].position.copy().scale(time));
+        // this.scene.meshes[0].bones[i].endpoint = Vec3.sum(keyframe1.bones[i].endpoint.copy().scale(1-time), keyframe2.bones[i].endpoint.copy().scale(time));
+      }
+
+      for (let i = 0; i < this.scene.meshes[0].bones.length; i++) {
+        if (this.scene.meshes[0].bones[i].parent == -1) {
+          // This will recursively do the same for all children bones
+          this.scene.meshes[0].calculateD_iAndTranslate(i, null);
+        }
+      }
+    }
 
 	//TODO: Handle mesh playback if implementing for project spec
 
