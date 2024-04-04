@@ -171,7 +171,7 @@ export class GUI implements IGUI {
     // console.log(mouse);
     if (mouse.offsetX > 800) {
       // in the preview pane
-      if (mouse.buttons == 1.0) {
+      if (mouse.buttons == 1.0 && this.mode == Mode.edit) {
         let keyFrame = Math.floor(mouse.offsetY/textureHeight);
         if (keyFrame == this.selectedKeyFrame) {
           this.selectedKeyFrame = -1;
@@ -391,6 +391,36 @@ export class GUI implements IGUI {
     return ans;
     
   }
+
+  private updateSelectedKeyframe() {
+    // this.keyFrames.push(new KeyFrame(this.animation.getScene().meshes[0].bones));
+    // this.animation.createTexture();
+    if (this.selectedKeyFrame != -1)
+    {
+      let keyframe = new KeyFrame(this.animation.getScene().meshes[0].bones);
+      this.keyFrames[this.selectedKeyFrame] = keyframe;
+      this.animation.createTexture(this.selectedKeyFrame);
+    }
+  }
+
+  private deleteSelectedKeyframe() {
+    if (this.selectedKeyFrame != -1)
+    {
+      // let keyframe = new KeyFrame(this.animation.getScene().meshes[0].bones);
+      this.keyFrames.splice(this.selectedKeyFrame, 1);
+      this.animation.deleteTexture(this.selectedKeyFrame);
+    }
+  }
+
+  private updateFromSelectedKeyframe() {
+    if (this.selectedKeyFrame != -1) {
+      // this.keyFrames.push(new KeyFrame(this.animation.getScene().meshes[0].bones));
+      this.animation.getScene().meshes[0].bones = [];
+      this.keyFrames[this.selectedKeyFrame].bones.forEach(bone => {
+        this.animation.getScene().meshes[0].bones.push(new Bone(bone));
+      }); 
+    }
+  }
   
   public getModeString(): string {
     switch (this.mode) {
@@ -418,6 +448,7 @@ export class GUI implements IGUI {
    * @param key
    */
   public onKeydown(key: KeyboardEvent): void {
+    // console.log(key.code);
     switch (key.code) {
       case "Digit1": {
         this.animation.setSceneBeforeReset("./static/assets/skinning/split_cube.dae");
@@ -483,6 +514,26 @@ export class GUI implements IGUI {
         this.animation.reset();
         break;
       }
+      case "KeyU": {
+        if (this.mode == Mode.edit)
+        {
+          this.updateSelectedKeyframe();
+        }
+        break;
+      }
+      case "Delete":
+      case "Backspace": {
+        if (this.mode == Mode.edit) {
+          this.deleteSelectedKeyframe();
+        }
+        break;
+      }
+      case "Equal": {
+        if (this.mode == Mode.edit) {
+          this.updateFromSelectedKeyframe();
+        }
+        break;
+      }
       case "ArrowLeft": {      
         let mesh = this.animation.getScene().meshes[0];
 
@@ -519,7 +570,7 @@ export class GUI implements IGUI {
         if (this.mode === Mode.edit) {
 		      //TODO: Add keyframes if required by project spec
           this.keyFrames.push(new KeyFrame(this.animation.getScene().meshes[0].bones));
-          this.animation.createTexture();
+          this.animation.createTexture(null);
         }
         break;
       }      

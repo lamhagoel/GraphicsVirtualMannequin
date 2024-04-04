@@ -283,7 +283,11 @@ export class SkinningAnimation extends CanvasAnimation {
     this.floorRenderPass.setup();
   }
 
-  public createTexture() {
+  public deleteTexture(index: number) {
+    this.textures.splice(index, 1);
+  }
+
+  public createTexture(keyframeIndex: number | null) {
     const gl: WebGLRenderingContext = this.ctx;
     const texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -326,7 +330,12 @@ export class SkinningAnimation extends CanvasAnimation {
     this.drawScene(0, 0, textureWidth, textureHeight);
 
     if (texture){
-      this.textures.push(texture);
+      if (keyframeIndex === null) {
+        this.textures.push(texture);
+      }
+      else {
+        this.textures[keyframeIndex] = texture;
+      }
     }
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -338,6 +347,9 @@ export class SkinningAnimation extends CanvasAnimation {
     if (keyFrame != -1 && keyFrame != i) {
       // We need to diffuse
       diffuse = new Float32Array([0.25, 0.25, 0.25, 0.25, 0.25, 0.25]);
+    }
+    if (keyFrame == i) {
+      diffuse = new Float32Array([1.2, 1.2, 1.2, 1.2, 1.2, 1.2]);
     }
     gl.bufferData(gl.ARRAY_BUFFER, diffuse, gl.STATIC_DRAW);
   }
