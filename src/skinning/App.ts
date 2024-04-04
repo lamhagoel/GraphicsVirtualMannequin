@@ -316,12 +316,34 @@ export class SkinningAnimation extends CanvasAnimation {
       this.ctx2.clearRect(0, 0, this.ctx2.canvas.width, this.ctx2.canvas.height);
       if (this.scene.meshes.length > 0) {
         this.ctx2.fillText(this.getGUI().getModeString(), 50, 710);
+        // Timeline dimensions and positions
+        const timelineX = 300; 
+        const timelineY = 703; 
+        const timelineWidth = 430;
+        const timelineHeight = 2; 
+
+        // Draw Timeline
+        this.ctx2.fillStyle = 'white';
+        this.ctx2.fillRect(timelineX, timelineY, timelineWidth, timelineHeight);
+
+        const keyFrames = this.gui.keyFrames; 
+        const totalTime = this.gui.getNumKeyFrames() - 1; 
+        const currentTime = this.gui.time;
+        // Draw Slider
+        if (keyFrames.length > 1) {
+          const sliderPosition = (currentTime / totalTime) * timelineWidth + timelineX;
+          this.ctx2.fillStyle = 'red';
+          this.ctx2.fillRect(sliderPosition - 2, timelineY - 10, 4, 20); 
+        }
+        
+        
       }
     }
 
     // Drawing
     const gl: WebGLRenderingContext = this.ctx;
     const bg: Vec4 = this.backgroundColor;
+
     gl.clearColor(bg.r, bg.g, bg.b, bg.a);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.CULL_FACE);
