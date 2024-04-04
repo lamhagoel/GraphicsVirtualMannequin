@@ -1,9 +1,17 @@
 Sebastian Gaete UT EID: SWG523
 Partner: Lamha Goel UT EID: LG36694
 
-Extra credit:
-Draw a timeline in the status bar area of the window:
+We allow edition to KeyFrames only on edition mode.
+
+* Extra credit:
+- Draw a timeline in the status bar area of the window:
 We included a timeline next to the number of keyframes including ticks for keyframes.
-Find or create our own character model:
+- Find or create our own character model:
 We found a character named alien animal and we included the different poses in the
 following folder: src/skinning/character_model_poses/
+This character can be activated by pressing the key "8".
+- Creative Scene:
+We used the wolf character model to create a video which is in the following link:
+https://youtu.be/Ibx9LLHPLJc
+The video serves to show our work and also to generate conscience to the viewers.
+We used Text-to-Speech conversion to generate the voice over.
