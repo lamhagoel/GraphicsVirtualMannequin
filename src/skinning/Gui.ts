@@ -165,6 +165,8 @@ export class GUI implements IGUI {
    * @param mouse
    */
   public dragStart(mouse: MouseEvent): void {
+    // console.log(mouse);
+
     if (mouse.offsetY > 600) {
       // outside the main panel
       return;
@@ -402,36 +404,43 @@ export class GUI implements IGUI {
   public onKeydown(key: KeyboardEvent): void {
     switch (key.code) {
       case "Digit1": {
-        this.animation.setScene("./static/assets/skinning/split_cube.dae");
+        this.animation.setSceneBeforeReset("./static/assets/skinning/split_cube.dae");
+        this.animation.reset();
         break;
       }
       case "Digit2": {
-        this.animation.setScene("./static/assets/skinning/long_cubes.dae");
+        this.animation.setSceneBeforeReset("./static/assets/skinning/long_cubes.dae");
+        this.animation.reset();
         break;
       }
       case "Digit3": {
-        this.animation.setScene("./static/assets/skinning/simple_art.dae");
+        this.animation.setSceneBeforeReset("./static/assets/skinning/simple_art.dae");
+        this.animation.reset();
         break;
       }      
       case "Digit4": {
-        this.animation.setScene("./static/assets/skinning/mapped_cube.dae");
+        this.animation.setSceneBeforeReset("./static/assets/skinning/mapped_cube.dae");
+        this.animation.reset();
         break;
       }
       case "Digit5": {
-        this.animation.setScene("./static/assets/skinning/robot.dae");
+        this.animation.setSceneBeforeReset("./static/assets/skinning/robot.dae");
+        this.animation.reset();
         break;
       }
       case "Digit6": {
-        this.animation.setScene("./static/assets/skinning/head.dae");
+        this.animation.setSceneBeforeReset("./static/assets/skinning/head.dae");
+        this.animation.reset();
         break;
       }
       case "Digit7": {
-        this.animation.setScene("./static/assets/skinning/wolf.dae");
+        this.animation.setSceneBeforeReset("./static/assets/skinning/wolf.dae");
+        this.animation.reset();
         break;
       }
       case "Digit8": {
-        this.animation.setScene("./static/assets/skinning/Alien_Animal.dae");
-         
+        this.animation.setSceneBeforeReset("./static/assets/skinning/Alien_Animal.dae");
+        this.animation.reset();
         break;
       }
       case "KeyW": {
@@ -456,7 +465,6 @@ export class GUI implements IGUI {
       }
       case "KeyR": {
         this.animation.reset();
-        this.keyFrames = [];
         break;
       }
       case "ArrowLeft": {      

@@ -101,6 +101,8 @@ export class SkinningAnimation extends CanvasAnimation {
    * Setup the animation. This can be called again to reset the animation.
    */
   public reset(): void {
+      this.textures = [];
+      this.getGUI().keyFrames = [];
       this.gui.reset();
       this.setScene(this.loadedScene);
   }
@@ -293,7 +295,6 @@ export class SkinningAnimation extends CanvasAnimation {
     const data = null;
     gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, textureWidth, textureHeight, border, format, type, data);
 
-    // TODO: Do we need these? Why?
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -567,6 +568,10 @@ export class SkinningAnimation extends CanvasAnimation {
 
   public getGUI(): GUI {
     return this.gui;
+  }
+
+  public setSceneBeforeReset(fileLocation: string): void {
+    this.loadedScene = fileLocation; 
   }
   
   /**
