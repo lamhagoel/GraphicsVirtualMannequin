@@ -291,7 +291,6 @@ export class SkinningAnimation extends CanvasAnimation {
       let keyframe1 = this.getGUI().keyFrames[keyFrame1Index];
       let keyframe2 = this.getGUI().keyFrames[keyFrame2Index];
       let time = this.getGUI().time-keyFrame1Index;
-      console.log(time, deltaT, keyFrame1Index, keyFrame2Index);
 
       // let bones = this.scene.meshes[0].bones;
       for (let i = 0; i < this.scene.meshes[0].bones.length; i++) {
@@ -329,6 +328,24 @@ export class SkinningAnimation extends CanvasAnimation {
         const keyFrames = this.gui.keyFrames; 
         const totalTime = this.gui.getNumKeyFrames() - 1; 
         const currentTime = this.gui.time;
+        
+        // keyFrames.forEach(keyFrame => {
+        //     const keyFramePosition = (keyFrames.length / totalTime) * timelineWidth + timelineX;
+        //     if (this.ctx2) {
+        //       this.ctx2.fillRect(keyFramePosition - 1, timelineY - 5, 2, 10); // Small tick for each keyframe
+        //     }
+        // });
+        if (keyFrames.length > 1) {
+          for (let i = 0; i < totalTime; i++) {
+            const sliderPosition = ((i + 1) / totalTime) * timelineWidth + timelineX;
+            // if (sliderPosition%2 == 0) {
+            //   this.ctx2.fillStyle = 'red';
+            // }
+            // // const sliderPosition = (currentTime / totalTime) * timelineWidth + timelineX;
+            this.ctx2.fillStyle = 'white';
+            this.ctx2.fillRect(sliderPosition - 3, timelineY - 10, 4, 20);
+          }
+        }
         // Draw Slider
         if (keyFrames.length > 1) {
           const sliderPosition = (currentTime / totalTime) * timelineWidth + timelineX;
