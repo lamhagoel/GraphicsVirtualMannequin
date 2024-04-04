@@ -326,6 +326,8 @@ export class SkinningAnimation extends CanvasAnimation {
     if (texture){
       this.textures.push(texture);
     }
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
   private setGeometry(gl) {
@@ -472,7 +474,7 @@ export class SkinningAnimation extends CanvasAnimation {
       var texcoordLocation = gl.getAttribLocation(textureRenderProgram, "a_texcoord");
 
       // lookup uniforms
-      var matrixLocation = gl.getUniformLocation(textureRenderProgram, "u_matrix");
+      // var matrixLocation = gl.getUniformLocation(textureRenderProgram, "u_matrix");
       var textureLocation = gl.getUniformLocation(textureRenderProgram, "u_texture");
 
       // Create a buffer for positions
@@ -481,18 +483,11 @@ export class SkinningAnimation extends CanvasAnimation {
       gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
       // Put the positions in the buffer
       this.setGeometry(gl);
-
-      // provide texture coordinates for the rectangle.
-      var texcoordBuffer = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
-      // Set Texcoords.
-      this.setTexcoords(gl);
-
       // Turn on the position attribute
       gl.enableVertexAttribArray(positionLocation);
 
       // Bind the position buffer.
-      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+      // gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
       gl.vertexAttribPointer(
         positionLocation,
         3,
@@ -502,11 +497,17 @@ export class SkinningAnimation extends CanvasAnimation {
         0
       );
 
+      // provide texture coordinates for the rectangle.
+      var texcoordBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
+      // Set Texcoords.
+      this.setTexcoords(gl);
+
       // Turn on the texcoord attribute
       gl.enableVertexAttribArray(texcoordLocation);
 
       // bind the texcoord buffer.
-      gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
+      // gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
       gl.vertexAttribPointer(
         texcoordLocation,
         2,
@@ -516,10 +517,11 @@ export class SkinningAnimation extends CanvasAnimation {
         0
       );
 
-      let matrix = Mat4.product(this.gui.projMatrix(), this.gui.viewMatrix());
-      // Set the matrix.
-      gl.uniformMatrix4fv(matrixLocation, false, matrix.all());
+      // let matrix = Mat4.product(this.gui.projMatrix(), this.gui.viewMatrix());
+      // // Set the matrix.
+      // gl.uniformMatrix4fv(matrixLocation, false, matrix.all());
   
+      gl.activeTexture(gl.TEXTURE0);
       // render the cube with the texture we just rendered to
       gl.bindTexture(gl.TEXTURE_2D, this.textures[0]);
 
