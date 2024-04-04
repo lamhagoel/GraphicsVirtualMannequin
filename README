@@ -1,7 +1,27 @@
-Sebastian Gaete UT EID: SWG523
-Partner: Lamha Goel UT EID: LG36694
+Lamha Goel UT EID: LG36694
+Partner: Sebastian Gaete UT EID: SWG523
 
-We allow edition to KeyFrames only on edition mode.
+We allow editing (addiiton, update etc.) of KeyFrames only in Edit mode.
+
+* Keyframe Animation:
+- Key K: to save the keyframe, we copy the bones from the current mesh to a KeyFrame object, and add it to an array of keyframes.
+- Key P: we use SLERP to interpolate the rotation between two keyframes. We then use the interpolated rotation to reconstruct the D_i matrics, which we use to figure out the interpolated translation of the bones.
+- Key R: We simply reset by clearing the relevant arrays/variables like the array of keyframes, textures etc.
+
+
+* Keyframe preview:
+- For the keyframe previews, when adding or updating a keyframe, we also render the current orientation of the joints to a texture corresponding to this keyframe that we store in another array of textures. For this, we mostly follow the tutorial linked on the assignment page for rendering to a texture and use a framebuffer attached to the texture, instead of the default null framebuffer which is used for rendering to the canvas.
+- Following the same tutorial, we then render this texture to the preview pane canvas. To do this, we render a quad to a viewport of size (320x240) pixels with the texture values used for deciding the color. The 320 is based on the preview pane width, and the 240 is chosen to preserve the aspect ratio of the main window (so basically, 800x600 scaled to 320x240).
+- We did not implement scrolling, so the user can view 3 keyframes (and the 4th keyframe partially) on the preview pane.
+
+
+* Keyframe management:
+All of these options are allowed only if we're in the edit mode, and a keyframe is selected.
+- Left-clicking on a keyframe will select that keyframe (this is shown by increasing the brightness of that keyframe, and reducing it for other keyframes - this is done by scaling the color of all pixels by 0.25 for reducing the brightness, and 1.2 for increasing the brightness)
+- For Delete, we allow both the "Delete" and the "Backspace" key (mostly because the delete key on a Macbook registers as a backspace, and Fn+Delete registers as Delete).
+- The update using U key works similarly as adding a keyframe, except instead of adding, we just replace the corresponding entry in the arrays.
+- Finally, when user presses =, we copy the bones from the selected keyframe to the current mesh to update the character's pose in the main window.
+
 
 * Extra credit:
 - Draw a timeline in the status bar area of the window:
