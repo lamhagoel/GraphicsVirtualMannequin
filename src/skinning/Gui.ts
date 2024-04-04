@@ -495,6 +495,7 @@ export class GUI implements IGUI {
         if (this.mode === Mode.edit) {
 		      //TODO: Add keyframes if required by project spec
           this.keyFrames.push(new KeyFrame(this.animation.getScene().meshes[0].bones));
+          this.animation.createTexture();
         }
         break;
       }      

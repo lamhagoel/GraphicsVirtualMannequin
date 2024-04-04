@@ -6,6 +6,8 @@ import {
 import { Floor } from "../lib/webglutils/Floor.js";
 import { GUI, Mode } from "./Gui.js";
 import {
+  textureVSText,
+  textureFSText,
   sceneFSText,
   sceneVSText,
   floorFSText,
@@ -19,6 +21,9 @@ import { Mat4, Vec4, Vec3, Quat } from "../lib/TSM.js";
 import { CLoader } from "./AnimationFileLoader.js";
 import { RenderPass } from "../lib/webglutils/RenderPass.js";
 import { Camera } from "../lib/webglutils/Camera.js";
+
+const textureWidth = 320;
+const textureHeight = 240;
 
 export class SkinningAnimation extends CanvasAnimation {
   private gui: GUI;
@@ -37,6 +42,9 @@ export class SkinningAnimation extends CanvasAnimation {
   /* Skeleton rendering info */
   private skeletonRenderPass: RenderPass;
 
+  /* Textures corresponding to each keyframe -- we only need to compute them when we
+  add the keyframe, and then we should not need to change it */
+  private textures: WebGLTexture[];
 
   /* Scrub bar background rendering info */
   private sBackRenderPass: RenderPass;
@@ -51,6 +59,8 @@ export class SkinningAnimation extends CanvasAnimation {
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);
+
+    this.textures = [];
 
     this.canvas2d = document.getElementById("textCanvas") as HTMLCanvasElement;
     this.ctx2 = this.canvas2d.getContext("2d");
@@ -270,6 +280,83 @@ export class SkinningAnimation extends CanvasAnimation {
     this.floorRenderPass.setup();
   }
 
+  public createTexture() {
+    const gl: WebGLRenderingContext = this.ctx;
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    const level = 0;
+    const internalFormat = gl.RGBA;
+    const border = 0;
+    const format = internalFormat;
+    const type = gl.UNSIGNED_BYTE;
+    const data = null;
+    gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, textureWidth, textureHeight, border, format, type, data);
+
+    // TODO: Do we need these? Why?
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    const fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+
+    // attach the texture as the first color attachment
+    const attachmentPoint = gl.COLOR_ATTACHMENT0;
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, texture, level);
+
+    // TODO: check if we need to do this depth buffer thing
+    // create a depth renderbuffer
+    const depthBuffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
+    // make a depth buffer and the same size as the targetTexture
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, textureWidth, textureHeight);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
+
+    const bg: Vec4 = this.backgroundColor;
+    gl.clearColor(bg.r, bg.g, bg.b, bg.a);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.CULL_FACE);
+    gl.enable(gl.DEPTH_TEST);
+    gl.frontFace(gl.CCW);
+    gl.cullFace(gl.BACK);
+
+    this.drawScene(0, 0, textureWidth, textureHeight);
+
+    if (texture){
+      this.textures.push(texture);
+    }
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  private setGeometry(gl) {
+    var positions = new Float32Array(
+      [
+      -1, -1,  0,
+       1, -1,  0,
+      -1,  1,  0,
+      -1,  1,  0,
+       1, -1,  0,
+       1,  1,  0,
+      ]);
+    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+  }
+
+  private setTexcoords(gl) {
+    gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array(
+          [
+            0, 0,
+            1, 0,
+            0, 1,
+            0, 1,
+            1, 0,
+            1, 1,
+        ]),
+        gl.STATIC_DRAW);
+  }
 
   /** @internal
    * Draws a single frame
@@ -357,9 +444,13 @@ export class SkinningAnimation extends CanvasAnimation {
       }
     }
 
+    
     // Drawing
     const gl: WebGLRenderingContext = this.ctx;
     const bg: Vec4 = this.backgroundColor;
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null); // null is the default frame buffer
+    gl.viewport(0, 200, 800, 600);
 
     gl.clearColor(bg.r, bg.g, bg.b, bg.a);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -368,8 +459,88 @@ export class SkinningAnimation extends CanvasAnimation {
     gl.frontFace(gl.CCW);
     gl.cullFace(gl.BACK);
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null); // null is the default frame buffer
     this.drawScene(0, 200, 800, 600);
+
+    let numKeyFramestoShow = Math.min(this.getGUI().getNumKeyFrames(), 4);
+    for (let i=0; i< numKeyFramestoShow; i++) {
+      gl.viewport(800, 800-240*(i+1), textureWidth, textureHeight);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.enable(gl.CULL_FACE);
+      gl.disable(gl.DEPTH_TEST);
+      // gl.disable(gl.CULL_FACE);
+      gl.frontFace(gl.CCW);
+      gl.cullFace(gl.BACK);
+
+      const textureRenderProgram = WebGLUtilities.createProgram(
+        gl,
+        textureVSText,
+        textureFSText,
+      );
+      gl.useProgram(textureRenderProgram);
+
+      // look up where the vertex data needs to go.
+      var positionLocation = gl.getAttribLocation(textureRenderProgram, "a_position");
+      var texcoordLocation = gl.getAttribLocation(textureRenderProgram, "a_texcoord");
+
+      // lookup uniforms
+      // var matrixLocation = gl.getUniformLocation(textureRenderProgram, "u_matrix");
+      var textureLocation = gl.getUniformLocation(textureRenderProgram, "u_texture");
+
+      // Create a buffer for positions
+      var positionBuffer = gl.createBuffer();
+      // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = positionBuffer)
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+      // Put the positions in the buffer
+      this.setGeometry(gl);
+      // Turn on the position attribute
+      gl.enableVertexAttribArray(positionLocation);
+
+      // Bind the position buffer.
+      // gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+      gl.vertexAttribPointer(
+        positionLocation,
+        3,
+        gl.FLOAT,
+        false,
+        0,
+        0
+      );
+
+      // provide texture coordinates for the rectangle.
+      var texcoordBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
+      // Set Texcoords.
+      this.setTexcoords(gl);
+
+      // Turn on the texcoord attribute
+      gl.enableVertexAttribArray(texcoordLocation);
+
+      // bind the texcoord buffer.
+      // gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
+      gl.vertexAttribPointer(
+        texcoordLocation,
+        2,
+        gl.FLOAT,
+        false,
+        0,
+        0
+      );
+
+      // let matrix = Mat4.product(this.gui.projMatrix(), this.gui.viewMatrix());
+      // Set the matrix.
+      // gl.uniformMatrix4fv(matrixLocation, false, matrix.all());
+  
+      gl.activeTexture(gl.TEXTURE0);
+      // render the cube with the texture we just rendered to
+      gl.bindTexture(gl.TEXTURE_2D, this.textures[i]);
+
+      // Tell the shader to use texture unit 0 for u_texture
+      gl.uniform1i(textureLocation, 0);
+
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+      gl.enable(gl.DEPTH_TEST);
+    }
 
     /* Draw status bar */
     if (this.scene.meshes.length > 0) {

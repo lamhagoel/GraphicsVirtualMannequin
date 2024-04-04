@@ -154,7 +154,7 @@ export class Mesh {
   };
 
   public calculateD_iAndTranslate(bone: number, D_parent: Mat4 | null) {
-    let D_i: Mat4 = new Mat4().setIdentity();;
+    let D_i: Mat4 = new Mat4().setIdentity();
     // let rotation_i: Quat = new Quat().setIdentity().copy();
 
     let boneInstance = this.bones[bone];
