@@ -294,9 +294,9 @@ export class SkinningAnimation extends CanvasAnimation {
     gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, textureWidth, textureHeight, border, format, type, data);
 
     // TODO: Do we need these? Why?
-    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
     const fb = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
@@ -334,11 +334,11 @@ export class SkinningAnimation extends CanvasAnimation {
     var positions = new Float32Array(
       [
       -1, -1,  0,
-      -1,  1,  0,
        1, -1,  0,
       -1,  1,  0,
+      -1,  1,  0,
+       1, -1,  0,
        1,  1,  0,
-       1, -1,  0,
       ]);
     gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
   }
@@ -349,11 +349,11 @@ export class SkinningAnimation extends CanvasAnimation {
         new Float32Array(
           [
             0, 0,
-            0, 1,
             1, 0,
             0, 1,
+            0, 1,
+            1, 0,
             1, 1,
-            1, 0,
         ]),
         gl.STATIC_DRAW);
   }
@@ -378,7 +378,6 @@ export class SkinningAnimation extends CanvasAnimation {
       let keyframe1 = this.getGUI().keyFrames[keyFrame1Index];
       let keyframe2 = this.getGUI().keyFrames[keyFrame2Index];
       let time = this.getGUI().time-keyFrame1Index;
-      // console.log(time, deltaT, keyFrame1Index, keyFrame2Index);
 
       // let bones = this.scene.meshes[0].bones;
       for (let i = 0; i < this.scene.meshes[0].bones.length; i++) {
@@ -432,35 +431,27 @@ export class SkinningAnimation extends CanvasAnimation {
     const gl: WebGLRenderingContext = this.ctx;
     const bg: Vec4 = this.backgroundColor;
 
-    if (this.textures.length < 2) {
-      console.log("Still in original case");
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null); // null is the default frame buffer
-      gl.viewport(0, 200, 800, 600);
-  
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null); // null is the default frame buffer
+    gl.viewport(0, 200, 800, 600);
+
     gl.clearColor(bg.r, bg.g, bg.b, bg.a);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.CULL_FACE);
+    gl.enable(gl.DEPTH_TEST);
+    gl.frontFace(gl.CCW);
+    gl.cullFace(gl.BACK);
+
+    this.drawScene(0, 200, 800, 600);
+
+    let numKeyFramestoShow = Math.min(this.getGUI().getNumKeyFrames(), 4);
+    for (let i=0; i< numKeyFramestoShow; i++) {
+      gl.viewport(800, 800-240*(i+1), textureWidth, textureHeight);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.enable(gl.CULL_FACE);
-      gl.enable(gl.DEPTH_TEST);
+      gl.disable(gl.DEPTH_TEST);
+      // gl.disable(gl.CULL_FACE);
       gl.frontFace(gl.CCW);
       gl.cullFace(gl.BACK);
-
-      this.drawScene(0, 200, 800, 600);
-    }
-
-    // TODO
-    else {
-      console.log("trying to render the texture");
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      gl.viewport(0, 200, 800, 600);
-      // gl.viewport(800, 0, 320, 240);
-
-      gl.clearColor(bg.r, bg.g, bg.b, bg.a);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      // gl.enable(gl.CULL_FACE);
-      gl.enable(gl.DEPTH_TEST);
-      gl.disable(gl.CULL_FACE);
-      // gl.frontFace(gl.CCW);
-      // gl.cullFace(gl.BACK);
 
       const textureRenderProgram = WebGLUtilities.createProgram(
         gl,
@@ -518,30 +509,20 @@ export class SkinningAnimation extends CanvasAnimation {
       );
 
       // let matrix = Mat4.product(this.gui.projMatrix(), this.gui.viewMatrix());
-      // // Set the matrix.
+      // Set the matrix.
       // gl.uniformMatrix4fv(matrixLocation, false, matrix.all());
   
       gl.activeTexture(gl.TEXTURE0);
       // render the cube with the texture we just rendered to
-      gl.bindTexture(gl.TEXTURE_2D, this.textures[0]);
+      gl.bindTexture(gl.TEXTURE_2D, this.textures[i]);
 
       // Tell the shader to use texture unit 0 for u_texture
       gl.uniform1i(textureLocation, 0);
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
-   
-      // Tell WebGL how to convert from clip space to pixels
-      // gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-   
-      // Clear the canvas AND the depth buffer.
-      // gl.clearColor(1, 1, 1, 1);   // clear to white
-      // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-   
-      // const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+
+      gl.enable(gl.DEPTH_TEST);
     }
-
-    // TODO
-
 
     /* Draw status bar */
     if (this.scene.meshes.length > 0) {
