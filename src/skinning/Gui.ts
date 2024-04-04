@@ -1,6 +1,6 @@
 import { Camera } from "../lib/webglutils/Camera.js";
 import { CanvasAnimation } from "../lib/webglutils/CanvasAnimation.js";
-import { SkinningAnimation } from "./App.js";
+import { SkinningAnimation, textureWidth, textureHeight } from "./App.js";
 import { Mat3, Mat4, Vec3, Vec4, Vec2, Mat2, Quat } from "../lib/TSM.js";
 import { Bone } from "./Scene.js";
 import { RenderPass } from "../lib/webglutils/RenderPass.js";
@@ -64,6 +64,8 @@ export class GUI implements IGUI {
   private selectedBone: number;
   private boneDragging: boolean;
 
+  public selectedKeyFrame: number;
+
   public time: number;
   public mode: Mode;
 
@@ -85,6 +87,7 @@ export class GUI implements IGUI {
     this.prevX = 0;
     this.prevY = 0;
     this.keyFrames = [];
+    this.selectedKeyFrame = -1;
     
     this.animation = animation;
     
@@ -166,6 +169,19 @@ export class GUI implements IGUI {
    */
   public dragStart(mouse: MouseEvent): void {
     // console.log(mouse);
+    if (mouse.offsetX > 800) {
+      // in the preview pane
+      if (mouse.buttons == 1.0) {
+        let keyFrame = Math.floor(mouse.offsetY/textureHeight);
+        if (keyFrame == this.selectedKeyFrame) {
+          this.selectedKeyFrame = -1;
+        }
+        else {
+          this.selectedKeyFrame = keyFrame;
+        }
+      }
+      return;
+    }
 
     if (mouse.offsetY > 600) {
       // outside the main panel

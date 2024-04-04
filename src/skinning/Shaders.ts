@@ -47,10 +47,12 @@ export const floorFSText = `
 export const textureVSText = `
     attribute vec4 a_position;
     attribute vec2 a_texcoord;
+    attribute float a_diffuse;
 
     // uniform mat4 u_matrix;
 
     varying vec2 v_texcoord;
+    varying float v_diffuse;
 
     void main() {
         // Multiply the position by the matrix.
@@ -59,6 +61,7 @@ export const textureVSText = `
 
         // Pass the texcoord to the fragment shader.
         v_texcoord = a_texcoord;
+        v_diffuse = a_diffuse;
     }
 `;
 export const textureFSText = `
@@ -66,12 +69,13 @@ export const textureFSText = `
 
     // Passed in from the vertex shader.
     varying vec2 v_texcoord;
+    varying float v_diffuse;
 
     // The texture.
     uniform sampler2D u_texture;
 
     void main() {
-        gl_FragColor = texture2D(u_texture, v_texcoord);
+        gl_FragColor = vec4(texture2D(u_texture, v_texcoord).xyz*max(v_diffuse, 0.0), 1.0);
         // gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
     }
 `;

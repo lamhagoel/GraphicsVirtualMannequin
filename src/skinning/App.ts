@@ -22,8 +22,8 @@ import { CLoader } from "./AnimationFileLoader.js";
 import { RenderPass } from "../lib/webglutils/RenderPass.js";
 import { Camera } from "../lib/webglutils/Camera.js";
 
-const textureWidth = 320;
-const textureHeight = 240;
+export const textureWidth = 320;
+export const textureHeight = 240;
 
 export class SkinningAnimation extends CanvasAnimation {
   private gui: GUI;
@@ -103,6 +103,7 @@ export class SkinningAnimation extends CanvasAnimation {
   public reset(): void {
       this.textures = [];
       this.getGUI().keyFrames = [];
+      this.getGUI().selectedKeyFrame = -1;
       this.gui.reset();
       this.setScene(this.loadedScene);
   }
@@ -331,6 +332,16 @@ export class SkinningAnimation extends CanvasAnimation {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
+  private setDiffuse(gl, i: number) {
+    let keyFrame = this.getGUI().selectedKeyFrame;
+    var diffuse = new Float32Array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0]);
+    if (keyFrame != -1 && keyFrame != i) {
+      // We need to diffuse
+      diffuse = new Float32Array([0.25, 0.25, 0.25, 0.25, 0.25, 0.25]);
+    }
+    gl.bufferData(gl.ARRAY_BUFFER, diffuse, gl.STATIC_DRAW);
+  }
+
   private setGeometry(gl) {
     var positions = new Float32Array(
       [
@@ -482,10 +493,28 @@ export class SkinningAnimation extends CanvasAnimation {
       // look up where the vertex data needs to go.
       var positionLocation = gl.getAttribLocation(textureRenderProgram, "a_position");
       var texcoordLocation = gl.getAttribLocation(textureRenderProgram, "a_texcoord");
+      var diffuseLocation = gl.getAttribLocation(textureRenderProgram, "a_diffuse");
 
       // lookup uniforms
       // var matrixLocation = gl.getUniformLocation(textureRenderProgram, "u_matrix");
       var textureLocation = gl.getUniformLocation(textureRenderProgram, "u_texture");
+
+      // Create a buffer for diffuse
+      var diffuseBuffer = gl.createBuffer();
+      // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = diffuseBuffer)
+      gl.bindBuffer(gl.ARRAY_BUFFER, diffuseBuffer);
+      // Put the diffuse values in the buffer
+      this.setDiffuse(gl, i); //TODO Fix
+      // Turn on the diffuse attribute
+      gl.enableVertexAttribArray(diffuseLocation);
+      gl.vertexAttribPointer(
+        diffuseLocation,
+        1,
+        gl.FLOAT,
+        false,
+        0,
+        0
+      );
 
       // Create a buffer for positions
       var positionBuffer = gl.createBuffer();
