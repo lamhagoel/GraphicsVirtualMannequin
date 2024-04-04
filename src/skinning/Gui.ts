@@ -461,21 +461,21 @@ export class GUI implements IGUI {
       }
       case "ArrowLeft": {      
         let mesh = this.animation.getScene().meshes[0];
-        let rotationAxis =  Vec3.difference(mesh.bones[this.selectedBone].initEndpoint, mesh.bones[this.selectedBone].initPosition);
 
         if (!Number.isNaN(this.selectedBone)) {
+          let rotationAxis =  Vec3.difference(mesh.bones[this.selectedBone].initEndpoint, mesh.bones[this.selectedBone].initPosition);
           mesh.bones[this.selectedBone].rotateBone(rotationAxis, GUI.rotationSpeed);
           mesh.updateMesh(this.selectedBone, null, null);
         } else {
-          this.camera.roll(GUI.rollSpeed, false);
+          this.camera.roll(GUI.rollSpeed, true);
         }
         break;
       }
       case "ArrowRight": {
         let mesh = this.animation.getScene().meshes[0];
-        let rotationAxis =  Vec3.difference(mesh.bones[this.selectedBone].initEndpoint, mesh.bones[this.selectedBone].initPosition);
-
+        
         if (!Number.isNaN(this.selectedBone)) {
+          let rotationAxis =  Vec3.difference(mesh.bones[this.selectedBone].initEndpoint, mesh.bones[this.selectedBone].initPosition);
           mesh.bones[this.selectedBone].rotateBone(rotationAxis, -GUI.rotationSpeed);
           mesh.updateMesh(this.selectedBone, null, null);
         } else {
